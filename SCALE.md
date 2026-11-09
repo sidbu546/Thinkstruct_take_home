@@ -81,7 +81,7 @@ examiner users, **10 queries/s peak**, p95 latency target **< 1.5 s** with reran
 | Batch workers | containers on **ECS/Fargate** (CPU) and **ECS on EC2 GPU** (embedding) | parse/validate, chunk, embed, index build | same image as Part 1's code; scale by queue depth |
 | Search engine | **OpenSearch** (managed) | BM25 over title/abstract/claims, keyword/CPC/date filters, **patent-level vectors** (kNN, faiss HNSW) | one engine does lexical + filters + vectors; supports filtered kNN |
 | Chunk-vector store | **LanceDB on local NVMe** of the search API nodes (synced from S3), keyed by `doc_number` | ~960M chunk vectors, fetched **by document**, not searched globally | avoids a ~1B-vector ANN; fetch-by-key is fast and cheap |
-| Reranker service (optional) | small GPU service (L4), `bge-reranker-base` | phase 2: top 100 patents × 2 chunks ≈ 200 pairs → top 30 | opt-in, as in Part 3 (small measured gain); an L4 is expected to be far faster than the ~16 s measured on the Mac GPU, but that is not measured |
+| Reranker service (optional) | small GPU service (L4), `bge-reranker-base` | phase 2: top 100 patents × 2 chunks ≈ 200 pairs → top 30 | opt-in, as in Part 3 (small measured gain); an L4 is expected to be far faster than the ~7 s per query measured on the Mac GPU, but that is not measured |
 | Search API | FastAPI, stateless | orchestration, JSON contract | same code as Part 1 |
 | Observability | CloudWatch or Prometheus + Grafana, structured logs, OpenTelemetry traces | pipeline and query health | see §7 |
 

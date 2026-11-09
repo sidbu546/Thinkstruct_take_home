@@ -63,8 +63,10 @@ def build(split: str = "test") -> str:
     lat_rows = [(k, v["latency_ms"]) for k, v in m.items() if k.endswith(split) and "latency_ms" in v]
     if lat_rows:
         out += ["## Latency per query (CPU, ms)", "",
-                "Measured during the evaluation runs, often with other jobs sharing the CPU. Idle, cold-cache "
-                "serving numbers are in reports/latency_bench_index.json.", "",
+                "Measured during the evaluation runs, often with other jobs sharing the CPU, and for reranked runs "
+                "with cross-encoder scores already in the on-disk cache from earlier runs, so rerank times here are "
+                "far below real serving. Idle, cold-cache serving numbers are in reports/latency_bench_index_ft.json "
+                "(README §5.3).", "",
                 "| Run | total p50 | total p95 | phase1 p50 | rerank p50 |",
                 "|---|---|---|---|---|"]
         for k, lat in lat_rows:

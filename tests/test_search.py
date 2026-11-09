@@ -138,3 +138,15 @@ def test_eval_splits_keep_families_together(engine):
         by_fam.setdefault(f, set()).add(split[d])
     assert all(len(s) == 1 for s in by_fam.values())
     assert set(split.values()) <= {"train", "dev", "test"}
+
+
+def test_training_triplets_never_use_dev_or_test_patents(engine):
+    """Regression: hard negatives for training must come from the training split only."""
+    from patent_search.eval.build_sets import assign_splits, build_pairs, families
+    fam = families(engine)
+    split = assign_splits(fam, 13)
+    recs = build_pairs(engine, split, fam, "train", 13, max_anchors=40, log=lambda *_: None)
+    assert recs
+    for r in recs:
+        assert split[r["doc"]] == "train"
+        assert all(split[d] == "train" for d in r["negative_docs"])

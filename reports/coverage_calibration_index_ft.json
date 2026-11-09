@@ -1,33 +1,33 @@
 {
   "model": "models/gte-patent-ft",
-  "revision": "local-sha256:547dd312e430f66a",
+  "revision": "local-sha256:bbbff71f1bb5a1a0",
   "claims_sampled": 300,
   "seed": 13,
   "positives": {
     "n": 1414,
-    "p10": 0.6637010991573333,
-    "median": 0.8000984489917755,
-    "p90": 0.8927987933158874
+    "p10": 0.6747311234474183,
+    "median": 0.8029119372367859,
+    "p90": 0.8974623680114746
   },
   "negatives_other_subclass": {
     "n": 28280,
-    "median": 0.329611137509346,
-    "p99": 0.5760801947116851,
-    "share_at_or_above_found": 0.002050919377652051,
+    "median": 0.32697533071041107,
+    "p99": 0.5722941184043884,
+    "share_at_or_above_found": 0.0019801980198019802,
     "share_at_or_above_weak": 0.010007072135785007
   },
   "same_subclass_other_patents (some genuinely overlap)": {
     "n": 28223,
-    "median": 0.41145050525665283,
-    "p97_5": 0.6393518090248109,
+    "median": 0.41211187839508057,
+    "p97_5": 0.6379719257354737,
     "share_at_or_above_found": 0.025015058640116217,
-    "share_at_or_above_weak": 0.0660454239450094
+    "share_at_or_above_weak": 0.06919888034581724
   },
   "recommended": {
-    "coverage_found": 0.639,
-    "coverage_weak": 0.576
+    "coverage_found": 0.638,
+    "coverage_weak": 0.572
   },
-  "share_of_positives_found": 0.9271570014144271,
-  "share_of_positives_at_least_weak": 0.958981612446959,
+  "share_of_positives_found": 0.9363507779349364,
+  "share_of_positives_at_least_weak": 0.9695898161244696,
   "index": "index_ft"
 }

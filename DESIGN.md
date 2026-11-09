@@ -247,7 +247,7 @@ Thresholds are calibrated per index without labels (`scripts/calibrate_coverage.
 embedding model has its own similarity scale. `found` is the 97.5th percentile of similarity between a
 claim element and *other* patents in the same subclass; `weak` is the 99th percentile for patents in
 *other* subclasses. Base model: `found` 0.802, `weak` 0.744 (an element's own patent reaches `found`
-96.4% of the time, a same-subclass patent 2.5%). Fine-tuned model: 0.639 and 0.576.
+96.4% of the time, a same-subclass patent 2.5%). Fine-tuned model: 0.638 and 0.572.
 
 A patent where every element is `found` is a potential anticipating reference. Any `undetermined`
 element makes that conclusion provisional, and the output says so.
@@ -401,7 +401,7 @@ There are no human relevance judgments and no examiner citations in this dataset
 description describe the same invention.
 
 - **Positive pairs:** (independent claim, its patent's abstract), used for evaluation and training. Training also uses (claim, the most similar passage of its own description) and (one claim element, the most similar passage of its own description).
-- **Hard negatives** look related but are not the target: other patents in the **same classification subclass** that the engine ranks 5th to 50th for the claim, excluding the same patent family and any patent whose abstract is near-identical to the positive (cosine > 0.95). Up to 3 per claim.
+- **Hard negatives** look related but are not the target: other patents in the **same classification subclass** that the engine ranks 5th to 50th for the claim, excluding the same patent family and any patent whose abstract is near-identical to the positive (cosine > 0.95). Up to 3 per claim. For training triplets, negatives are drawn **only from training patents**, so no dev or test patent's text is seen during training.
 - **Patents with data gaps stay in.** Every query records its patent's `data_status`, and results are broken down by it.
 
 #### 3A.2 Splits
@@ -444,15 +444,15 @@ quality of the passages from the effect of claim chunks competing for the same q
 #### 3A.5 Tuning on dev
 
 - **Claim-mode chunk-kind weights:** a 12-point grid (claim 1.0 / 0.6 / 0.3 × element 1.0 / 0.3 × description 0.6 / 1.0, abstract 1.0). The chosen weights (claim 0.6, element 0.3, description 0.6, abstract 1.0) scored 0.907 MRR@10 on dev, against 0.644 for the initial weights (abstract 0.8, claim 1.0, element 1.0, description 0.6). Claim 0.3 scored 0.914, a difference within noise; the milder setting was kept because real use also values claim-to-claim matches, which these labels cannot reward.
-- **Rerank blend:** α ∈ {0.2, 0.3, 0.5} × β ∈ {0, 0.1, 0.2} on the full pipeline; α 0.3, β 0.1 was best (Part 3B.3).
+- **Rerank blend:** α ∈ {0.2, 0.3, 0.5} × β ∈ {0, 0.1, 0.2} on the full pipeline; α 0.2, β 0.2 was best (Part 3B.3).
 
 #### 3A.6 Training
 
 - **Model:** `gte-modernbert-base`, fine-tuned in a plain PyTorch loop over the model's own forward pass (which reproduces its `encode()` output exactly).
 - **Loss:** InfoNCE (multiple-negatives ranking). Each claim must score its own positive above every other positive in the batch and above its mined hard negative. Scale 20.
 - **Data:** 2,649 triplets mined from the training split only. At most 6 per patent are used, so long patents don't dominate: 1,570 triplets, 1,292 with a hard negative.
-- **Settings:** 1 epoch (99 steps), batch 16, learning rate 2e-5 with 10% warm-up then linear decay, maximum length 256 tokens, float32 on CPU, seed 13. Training took 47 minutes; the loss fell from 0.84 to 0.24. Details are in `models/gte-patent-ft/training_card.json`.
-- **Selection rule:** keep the fine-tuned model if dev MRR@10 does not drop. It rose (+0.039), so it is kept as the `index_ft` index. The default index remains the base model: on test the two perform the same, and the base model needs no training to reproduce.
+- **Settings:** 1 epoch (99 steps), batch 16, learning rate 2e-5 with 10% warm-up then linear decay, maximum length 256 tokens, float32 on CPU, seed 13. Training took 24 minutes; the loss fell from 0.83 to 0.23. Details are in `models/gte-patent-ft/training_card.json`.
+- **Selection rule:** keep the fine-tuned model if dev MRR@10 does not drop. It rose (+0.044), so it is kept as the `index_ft` index. The default index remains the base model: on test the two perform the same, and the base model needs no training to reproduce.
 
 #### 3A.7 Weaknesses of this evaluation
 
@@ -485,14 +485,14 @@ top 100 for 96.7% of test queries, which is the ceiling for phase 2.
 
 1. **Pairs.** For each of the 100 candidates, its 2 best phase-1 chunks are paired with the query, about 200 pairs. An element hit is shown as its whole claim, and every passage is prefixed with the patent title. Pairs longer than 512 tokens are truncated.
 2. **Patent score** = the best of its pair scores.
-3. **Final score** = α · z(rerank score) + (1 − α) · z(phase-1 score), plus in claim mode β × the share of query elements `found`. z-scores are taken within the 100 candidates. Dev tuning chose **α 0.3, β 0.1**: giving the cross-encoder more weight lowered accuracy, because on these patents it is weaker than the tuned phase 1.
+3. **Final score** = α · z(rerank score) + (1 − α) · z(phase-1 score), plus in claim mode β × the share of query elements `found`. z-scores are taken within the 100 candidates. Dev tuning chose **α 0.2, β 0.2**: giving the cross-encoder more weight lowered accuracy, because on these patents it is weaker than the tuned phase 1.
 4. **Data gaps stay visible.** Reranking never changes coverage statuses or data notices.
 
 #### 3B.4 Cost, limits and caching
 
-- **Cost:** measured with a cold cache on the Mac GPU, reranking adds about 15 s per query (15.8 s p50 in total, against 181 ms for phase 1 alone).
+- **Cost:** measured with a cold cache on the Mac GPU, reranking adds about 7 s per query (7.3 s p50 and 10.5 s p95 in total, against 153 ms for phase 1 alone).
 - **Opt-in:** reranking is turned on with `--rerank` (or `"rerank": true`), not by default, because its measured gain is small (README §5.3) and its cost is high.
-- **Time budget:** 30 s in serving, above the measured cold-cache p95 (16.9 s) plus first-query warm-up. If it runs out, the scored candidates are reranked, the rest keep their phase-1 order, and the response says so in `pipeline_notices`. Evaluation runs without a budget, so results never depend on how busy the machine is.
+- **Time budget:** 30 s in serving, well above the measured cold-cache p95 (10.5 s) plus first-query warm-up. If it runs out, the scored candidates are reranked, the rest keep their phase-1 order, and the response says so in `pipeline_notices`. Evaluation runs without a budget, so results never depend on how busy the machine is.
 - **Score cache** on disk, keyed by model revision, device and the exact query and passage text. A pair is scored once, even across indexes that hold the same passages.
 
 ### 3C. Not included

@@ -69,9 +69,9 @@ class SearchConfig:
     rerank_device: str = field(default_factory=lambda: os.environ.get("PS_RERANK_DEVICE", "auto"))
     # auto = Apple GPU (mps) if available, else cpu
     rerank_chunks_per_doc: int = 2              # best phase-1 chunks per patent scored by the cross-encoder
-    rerank_budget_ms: int = 30000               # above the measured cold p95 (16.9 s) plus first-query warm-up
-    rerank_alpha: float = 0.3                   # weight of z(rerank) vs z(phase-1)  (dev-tuned)
-    rerank_beta: float = 0.1                    # claim mode: + beta * share of elements found (dev-tuned)
+    rerank_budget_ms: int = 30000               # well above the measured cold p95 (10.5 s) plus first-query warm-up
+    rerank_alpha: float = 0.2                   # weight of z(rerank) vs z(phase-1)  (dev-tuned)
+    rerank_beta: float = 0.2                    # claim mode: + beta * share of elements found (dev-tuned)
     rerank_batch: int = 16
     rerank_max_length: int = 512
 

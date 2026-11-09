@@ -304,7 +304,7 @@ All choices (weights, α/β, model selection) were made on **dev**. **Test** was
 
 All rows use the dev-tuned claim-mode chunk weights, except the "Part 1 weights" reference row.
 Rerank rows: phase 1 hands its top 100 patents to `bge-reranker-base` (Mac GPU), which returns the
-top 30 (α 0.3, β 0.1, tuned on dev).
+top 30 (α 0.2, β 0.2, tuned on dev).
 
 **Experiment matrix (test, 306 queries)**
 
@@ -314,9 +314,9 @@ top 30 (α 0.3, β 0.1, tuned on dev).
 | E1 | `gte-modernbert-base` | fixed 200-word windows | dense only | — | 0.741 [0.696, 0.785] | 0.657 | 0.892 | 0.938 |
 | E2 | `gte-modernbert-base` | adaptive | dense only | — | 0.744 [0.702, 0.785] | 0.667 | 0.869 | 0.918 |
 | E3 | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF | — | 0.825 [0.790, 0.858] | 0.752 | 0.938 | 0.967 |
-| E4 | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | — | 0.831 [0.797, 0.866] | 0.761 | 0.931 | 0.967 |
-| E5 | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.824 [0.789, 0.857] | 0.752 | 0.938 | 0.967 |
-| **E6** | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.837 [0.804, 0.871] | 0.768 | 0.938 | 0.967 |
+| E4 | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | — | 0.836 [0.801, 0.870] | 0.768 | 0.938 | 0.967 |
+| E5 | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.829 [0.795, 0.862] | 0.755 | 0.941 | 0.967 |
+| **E6** | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.843 [0.809, 0.877] | 0.778 | 0.941 | 0.967 |
 
 **Ablations and reference rows (test)**
 
@@ -335,39 +335,39 @@ top 30 (α 0.3, β 0.1, tuned on dev).
 | adaptive vs fixed chunks (dense, E2 vs E1) | +0.003 | [−0.017, +0.022] |
 | adaptive vs fixed, abstract + description only | +0.002 | [−0.013, +0.016] |
 | hybrid vs BM25 only (E3 vs E0) | +0.015 | [−0.013, +0.041] |
-| fine-tuned vs base bi-encoder (E4 vs E3) | +0.006 | [−0.014, +0.024] |
-| rerank on the base model (E5 vs E3) | −0.001 | [−0.016, +0.014] |
-| rerank on the fine-tuned model (E6 vs E4) | +0.006 | [−0.008, +0.019] |
-| full Part 3 pipeline vs tuned Part 1 (E6 vs E3) | +0.012 | [−0.009, +0.031] |
+| fine-tuned vs base bi-encoder (E4 vs E3) | +0.011 | [−0.009, +0.029] |
+| rerank on the base model (E5 vs E3) | +0.004 | [−0.010, +0.017] |
+| rerank on the fine-tuned model (E6 vs E4) | +0.007 | [−0.005, +0.019] |
+| full Part 3 pipeline vs tuned Part 1 (E6 vs E3) | +0.018 | [−0.002, +0.037] |
 
 **Reading the tables:**
 - **The dev-tuned chunk weights are the one clearly real gain** (+0.268).
-- **Everything else is within the noise on test:** adaptive vs fixed chunks, hybrid vs BM25, fine-tuning (which did win on dev: +0.039 [+0.018, +0.062]), and reranking.
-- **E6, the full pipeline, has the highest MRR@10 (0.837)** but is not significantly better than E3 (+0.012 [−0.009, +0.031]).
-- **Reranking on the base model (E5) changes nothing:** the right patent moved up in 19 queries and down in 19.
-- **Reranking on the fine-tuned model (E6) helps slightly:** up in 26, down in 9.
+- **Everything else is within the noise on test:** adaptive vs fixed chunks, hybrid vs BM25, fine-tuning (which did win on dev: +0.044 [+0.024, +0.065]), and reranking.
+- **E6, the full pipeline, has the highest MRR@10 (0.843)**, but its gain over E3 (+0.018 [−0.002, +0.037]) is not quite significant.
+- **Reranking on the base model (E5) barely helps** (+0.004): the right patent moved up in 21 queries and down in 11.
+- **Reranking on the fine-tuned model (E6) helps slightly** (+0.007): up in 23 queries, down in 6.
 - **Phase 1 already puts the right patent in the top 100 for 96.7% of queries,** which is the ceiling for phase 2.
 
 **T4, positives vs hard negatives** (bi-encoder only, test, 300 anchors, 900 hard negatives):
 
 | Model | triplet accuracy | ROC-AUC | mean cos pos / neg | margin |
 |---|---|---|---|---|
-| base gte-modernbert | 0.914 | 0.847 | 0.797 / 0.687 | 0.110 |
-| fine-tuned | 0.900 | **0.882** | 0.601 / 0.351 | **0.250** |
+| base gte-modernbert | 0.924 | 0.859 | 0.797 / 0.681 | 0.116 |
+| fine-tuned | **0.930** | **0.910** | 0.624 / 0.352 | **0.272** |
 
 **Training** (`train`): 1,570 triplets after a 6-per-patent cap (1,292 with a mined hard negative); 99 steps; max length 256 in training; one
-epoch, batch 16, lr 2e-5, InfoNCE with in-batch plus hard negatives; CPU, seed 13; loss 0.84 → 0.24 in
-47 minutes. Details are in `models/gte-patent-ft/training_card.json`.
+epoch, batch 16, lr 2e-5, InfoNCE with in-batch plus hard negatives; CPU, seed 13; loss 0.83 → 0.23 in
+24 minutes. Details are in `models/gte-patent-ft/training_card.json`.
 
 **Phase-2 tuning (dev):**
-- **Reranker used: `BAAI/bge-reranker-base`**, on the phase-1 top 100 (2 best chunks each, about 200 pairs), returning the top 30, on the Mac GPU (`mps`). On dev, α 0.3 / β 0.1 was best: MRR@10 0.951 against 0.946 for phase 1 (paired Δ +0.005, CI [−0.001, +0.013]). Giving the reranker more weight hurt (α 0.5: 0.942).
+- **Reranker used: `BAAI/bge-reranker-base`**, on the phase-1 top 100 (2 best chunks each, about 200 pairs), returning the top 30, on the Mac GPU (`mps`). On dev, α 0.2 / β 0.2 was best: MRR@10 0.952 against 0.950 for phase 1 (paired Δ +0.002, CI [−0.006, +0.011]). Giving the reranker more weight hurt (α 0.5: 0.940–0.944).
 
 **Serving latency** (fine-tuned index, cold cache, 20 dev claim queries, `scripts/latency_bench.py`):
 
 | Pipeline | p50 | p95 |
 |---|---|---|
-| phase 1 only (default; CPU) | 181 ms | 1.2 s |
-| phase 1 top 100 → bge rerank → top 30 (Mac GPU) | 15.8 s | 16.9 s |
+| phase 1 only (default; CPU) | 153 ms | 810 ms |
+| phase 1 top 100 → bge rerank → top 30 (Mac GPU) | 7.3 s | 10.5 s |
 
 ### 5.4 What the results say, and what I did about them
 
@@ -380,13 +380,14 @@ epoch, batch 16, lr 2e-5, InfoNCE with in-batch plus hard negatives; CPU, seed 1
    the passages themselves were as good (0.823 vs 0.807 dev). The gap came from claim-chunk crowding,
    which the weight tuning fixed. Adaptive chunks are kept for what this metric can't see: claim maps,
    element coverage, and evidence that shows a dependent claim with its parents.
-3. **Fine-tuning:** it beat the base model on dev and widened the positive/negative margin (0.11 → 0.25),
-   but its test gain is inside the noise, and its element-coverage separation is a little worse (own
-   evidence reaches `found` 92.7% vs 96.4%). By the rule fixed in the design (keep it if dev doesn't
+3. **Fine-tuning:** it beat the base model on dev (+0.044) and on every pair metric on test (triplet
+   accuracy 0.924 → 0.930, ROC-AUC 0.859 → 0.910, margin 0.116 → 0.272), but its retrieval gain on
+   test is inside the noise, and its element-coverage separation is a little worse (own evidence
+   reaches `found` 93.6% vs 96.4%). By the rule fixed in the design (keep it if dev doesn't
    drop), it is kept as `index_ft`. The **default index stays the base model**: it performs the same on
    test, and reproducing it needs no training.
 4. **Reranking** (top 100 → top 30) is wired in, tuned and tested, but its test gain is within the noise
-   (+0.006 on the fine-tuned model, −0.001 on the base model) and it costs about 16 s per query even on
+   (+0.007 on the fine-tuned model, +0.004 on the base model) and it costs about 7 s per query even on
    the Mac GPU, so it is **opt-in** (`--rerank`). Off-the-shelf
    cross-encoders don't know patent claims; fine-tuning the cross-encoder on these triplets is the
    obvious next step (designed as E7, not built).

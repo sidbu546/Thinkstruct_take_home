@@ -131,15 +131,19 @@ def _abstract_row(eng: Engine, doc: str) -> int | None:
 
 
 def mine_hard_negatives(eng: Engine, anchor: str, doc: str, fam: dict[str, int], pos_vec: np.ndarray,
-                        k: int = 3) -> list[str]:
+                        k: int = 3, allowed: set[str] | None = None) -> list[str]:
     """Other patents, same CPC subclass, ranked 5–50 by the current engine, not the same family,
-    and not near-identical to the positive (likely false negatives)."""
+    and not near-identical to the positive (likely false negatives). `allowed` restricts negatives to
+    a set of patents: for training triplets it is the training split, so no dev/test patent's text is
+    ever seen during training."""
     sub = eng.patents[doc]["cpc_subclass"]
     r = eng.search(SearchRequest(query=anchor, mode="claim", top_k=50, facets=False, rerank=False))
     out = []
     for x in r.results[4:]:
         d = x.doc_number
         if d == doc or fam[d] == fam[doc] or eng.patents[d]["cpc_subclass"] != sub:
+            continue
+        if allowed is not None and d not in allowed:
             continue
         row = _abstract_row(eng, d)
         if row is None or float(eng.vectors[row] @ pos_vec) > 0.95:
@@ -163,13 +167,14 @@ def build_pairs(eng: Engine, split_of: dict[str, str], fam: dict[str, int], spli
                 anchors.append((d, c))
     rng.shuffle(anchors)
     anchors = anchors[:max_anchors]
+    train_only = {d for d, s in split_of.items() if s == "train"} if split == "train" else None
     recs = []
     for i, (d, c) in enumerate(anchors):
         arow = _abstract_row(eng, d)
         if arow is None:
             continue
         pos_abs = eng.display_text[arow]
-        negs = mine_hard_negatives(eng, c["text"], d, fam, eng.vectors[arow])
+        negs = mine_hard_negatives(eng, c["text"], d, fam, eng.vectors[arow], allowed=train_only)
         neg_abs = [eng.display_text[_abstract_row(eng, n)] for n in negs]
         recs.append({"type": "claim->abstract", "doc": d, "anchor": c["text"], "positive": pos_abs,
                      "negatives": neg_abs, "negative_docs": negs, "data_status": eng.patents[d]["data_status"]})
