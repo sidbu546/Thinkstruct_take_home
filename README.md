@@ -306,6 +306,26 @@ All rows use the dev-tuned claim-mode chunk weights, except the "Part 1 weights"
 Rerank rows: phase 1 hands its top 100 patents to `bge-reranker-base` (Mac GPU), which returns the
 top 30 (α 0.2, β 0.2, tuned on dev).
 
+**How to read the metrics.** Each query has one correct patent (the claim's own patent, §5.2), so
+every metric asks *where in the ranking that patent appears*.
+
+| Metric | Full form | What it means here | Range |
+|---|---|---|---|
+| **R@k** (R@1, R@10, R@100) | Recall at k | share of queries whose correct patent is in the top *k* results. R@1 = ranked first; R@100 = within the 100 candidates handed to reranking | 0–1, higher is better |
+| **MRR@10** | Mean Reciprocal Rank at 10 | average of 1 ÷ (rank of the correct patent), counting 0 if it is below 10th. 1st → 1.0, 2nd → 0.5, 3rd → 0.33. The main metric: it rewards putting the right patent at the very top | 0–1, higher is better |
+| **nDCG@10** | normalized Discounted Cumulative Gain at 10 | like MRR, but the credit for rank *r* is 1 ÷ log₂(r + 1), so it falls off more gently (3rd → 0.5) | 0–1, higher is better |
+| **95% CI** | 95% confidence interval | the range the true value most likely lies in, from 1,000 bootstrap resamples of the queries. Wide intervals mean the test set is small | — |
+| **Δ (paired)** | paired difference | the change in MRR@10 between two configurations *on the same queries*, with its 95% CI. If the interval includes 0, the difference is not clearly real | — |
+| **Triplet accuracy** | — | share of (claim, own abstract, hard negative) triples where the claim is more similar to its own abstract than to the look-alike patent | 0–1, higher is better |
+| **ROC-AUC** | Area Under the Receiver Operating Characteristic curve | probability that a randomly chosen correct pair scores higher than a randomly chosen look-alike pair; 0.5 = chance | 0.5–1, higher is better |
+| **Margin** | — | mean similarity of correct pairs minus mean similarity of look-alike pairs | higher is better |
+| **p50 / p95** | 50th / 95th percentile | the median query time, and the time 95% of queries finish within | lower is better |
+
+Other abbreviations: **RRF** = Reciprocal Rank Fusion (each ranked list adds 1 ÷ (60 + rank) to an
+item's score, so items high in both the dense and the keyword list win); **BM25** = Best Matching 25,
+the standard keyword-ranking formula; **CPC** = Cooperative Patent Classification (codes like `B60C`);
+**T1–T5** = the evaluation tasks in §5.2; **α, β** = the rerank blend weights (DESIGN.md §3B.3).
+
 **Experiment matrix (test, 306 queries)**
 
 | Exp | Bi-encoder | Chunking | Retrieval | Rerank | MRR@10 [95% CI] | R@1 | R@10 | R@100 |
