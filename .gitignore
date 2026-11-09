@@ -1,13 +1,16 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
-data/
-index/
-index_*/
-runs/
+
+# Generated or large, project root only (leading "/" so code folders with the same name are not ignored)
+/data/
+/index/
+/index_*/
+/models/
+/runs/
+/cache/
+/poc_data/
 *.zip
-poc_data/
-cache/
-models/
