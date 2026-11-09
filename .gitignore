@@ -10,7 +10,9 @@ __pycache__/
 /index/
 /index_*/
 /models/
-/runs/
+# keep the final test-split runs behind every reported number; dev tuning runs stay local
+/runs/*
+!/runs/*_test.jsonl
 /cache/
 /poc_data/
 *.zip

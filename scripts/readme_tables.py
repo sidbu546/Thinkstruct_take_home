@@ -67,6 +67,10 @@ sys.path.insert(0, str(ROOT))
 from patent_search.eval import runner  # noqa: E402
 for a, b, label in COMPARE:
     if a in m and b in m:
-        d = runner.compare(a, b)
-        runner.save_metrics(f"cmp_{a}_vs_{b}_MRR@10_test", d)
+        key = f"cmp_{a}_vs_{b}_MRR@10_test"
+        if (runner.RUNS_DIR / f"{a}.jsonl").exists() and (runner.RUNS_DIR / f"{b}.jsonl").exists():
+            d = runner.compare(a, b)                 # recompute from the per-query run files
+            runner.save_metrics(key, d)
+        else:
+            d = m[key]                               # run files absent: use the stored comparison
         print(f"| {label} | {d['delta']:+.3f} | [{d['ci95'][0]:+.3f}, {d['ci95'][1]:+.3f}] |")

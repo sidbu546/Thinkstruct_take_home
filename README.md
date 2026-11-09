@@ -593,6 +593,9 @@ poc/             Part 2 proof-of-concept: db, queue, enqueue, process, worker, f
 scripts/         calibrate_coverage.py · tune_kind_weights.sh · tune_rerank_final.py
                  run_test_phase1.sh · run_test_rerank.sh · latency_bench.py · readme_tables.py · reproduce_part3.sh
 tests/           34 tests (fake encoder and reranker; ~3 s)
-eval_data/ runs/ reports/ models/ index/ index_fixed/ index_ft/ cache/ poc_data/   generated (not in git)
+eval_data/       evaluation splits, queries, answer files, pairs and training triplets (in git)
+runs/            per-query rankings of the final test runs E0–E6 and ablations (in git)
+reports/         metrics, evaluation report, calibration and tuning results (in git)
+data/ index/ index_fixed/ index_ft/ models/ cache/ poc_data/   generated locally by the commands above (not in git)
 DESIGN.md        engine and enhancements design                   SCALE.md   10M-patent design + PoC results
 ```
