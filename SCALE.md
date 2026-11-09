@@ -338,6 +338,71 @@ this result look like this" can always be traced back to a file and a code versi
 | M6 | Weekly incremental + data-research job + dashboard + alerts | a simulated weekly drop lands end to end; a backfilled record flips saved results to "re-examine" |
 | M7 | Scale test on the 480k large dataset (5% of target) | measured throughput and cost per 1k patents; extrapolation to 10M updated in §4.1 / §5 |
 
+### 8.1 Where to start
+
+**Before writing code:** read DESIGN.md §3–§6 (ingestion, storage, search, the JSON response), then
+run the local engine and the proof-of-concept (README §3 and §6). Both run on a laptop.
+
+**Start from the proof-of-concept.** `poc/` already implements milestone M1's behaviour on one
+machine: the job queue with leases, retries and a dead state (`poc/queue.py`), salvage, dedupe,
+data issues and an idempotent single-transaction write (`poc/process.py`), and status tracking
+(`poc/status.py`, `poc/dashboard.py`). M1 is mostly a port of it:
+
+| Proof-of-concept | Production (M1) |
+|---|---|
+| `jobs` table in SQLite | `jobs` table in Postgres (§3), with SQS carrying the job ids |
+| `queue.enqueue / claim / renew / complete_in_tx / fail` | the same five functions over Postgres + SQS: enqueue = insert the `jobs` row + send the message; claim = receive message + set lease; renew = extend the visibility timeout; fail = let the message return, then dead-letter after 3 attempts |
+| `zip://…!member` and `file://…` inputs | `s3://…` inputs (`read_input` in `poc/process.py` is the only function that changes) |
+| worker processes (`poc/worker.py`) | the same worker loop in a container on ECS |
+| `tests/test_poc.py` | keep these tests as the acceptance tests for the ported queue |
+
+**Reuse the engine's code; do not rewrite it.** Each pipeline stage calls existing modules:
+
+| Stage (§4.1) | Existing code to call |
+|---|---|
+| Parse + validate | `patent_search/ingest/load.py`, `normalize.py`, `claims.py`, `validate.py` (as `poc/process.py` already does per record) |
+| Chunk | `patent_search/ingest/chunk.py` (adaptive chunking) |
+| Embed | `patent_search/embed/encoder.py` (pinned model; set the device to `cuda` on GPU workers) and `embed/cache.py` |
+| Data-gap notices | `patent_search/notices.py` (fixed wording) |
+| Search API | `patent_search/search/engine.py`, `api/app.py`, `schemas.py`. The JSON contract stays the same; only the retrieval back-end changes (`search/filters.py` and `search/hybrid.py` → OpenSearch queries, `search/planner.py` → LanceDB fetch by document) |
+| Rerank | `patent_search/search/rerank.py` |
+| Validation gate (M5) | `patent_search/eval/runner.py` and `metrics.py` with the sets in `eval_data/` |
+| Index versions | `patent_search/manifest.py` and `index/verify.py` (what a build contains, and a check that it is reproducible) |
+
+**Job message** (the body of an SQS message; the full state lives in the `jobs` row):
+
+```json
+{
+  "job_id": 1234,
+  "pipeline": "backfill",
+  "stage": "parse",
+  "input_uri": "s3://patents-raw/uspto/2026-11-05/patents_batch_0030.json",
+  "input_sha256": "9f2c…",
+  "snapshot_id": "2026-11-10",
+  "pipeline_version": "git:bb7b2dc",
+  "model_revision": null,
+  "idempotency_key": "sha256(stage, input_sha256, pipeline_version, model_revision)"
+}
+```
+
+**Files passed between stages** (Parquet, one file per job, keyed by `snapshot_id`):
+
+| Output | Columns |
+|---|---|
+| `normalized/` | the `patents` and `claims` columns of DESIGN.md §4, plus `snapshot_id`, `source_uri`, `source_sha256` |
+| `chunks/` | `chunk_key, doc_number, kind, claim_number, element_idx, section, para_span, parent_chunk_key, tier, n_tokens, embed_text, display_text, weight` |
+| `vectors/` | `chunk_key, model_revision, vec_768` (float16, archive) and `vec_256` (int8, serving) |
+
+**Develop locally before touching the cloud.** Run Postgres and a single-node OpenSearch in Docker,
+and LocalStack for S3 and SQS, so the whole pipeline (M1–M4) runs on a laptop against the 640-patent
+dataset. Compare its search results with the local engine's (M3), and only then point it at AWS.
+
+**First week:**
+1. Run `pytest`, the local engine and the proof-of-concept; read DESIGN.md §3–§6.
+2. Port `poc/queue.py` to Postgres + SQS behind the same five functions; make `tests/test_poc.py` pass against it.
+3. Change `read_input` to read from S3 (LocalStack locally) and write the `normalized/` Parquet output.
+4. Process 10 batch files end to end, kill a worker mid-job, and confirm the M1 "done when" test.
+
 ---
 
 ## 9. Major challenges (acknowledged, not solved)
