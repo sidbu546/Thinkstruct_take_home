@@ -1,0 +1,371 @@
+W1108 19:07:48.145000 53951 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   1%|▏         | 2/134 [00:00<00:14,  8.87it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 499.70it/s]
+  E0_test: 50/306 (0.50 s/query)
+  E0_test: 100/306 (0.50 s/query)
+  E0_test: 150/306 (0.44 s/query)
+  E0_test: 200/306 (0.45 s/query)
+  E0_test: 250/306 (0.43 s/query)
+  E0_test: 300/306 (0.40 s/query)
+{
+ "overall": {
+  "R@1": 0.7288,
+  "R@10": 0.9412,
+  "R@30": 0.9542,
+  "R@100": 0.9608,
+  "MRR@10": 0.8105,
+  "nDCG@10": 0.843
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 247.0,
+   "p95": 1175.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 239.5,
+   "p95": 1154.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:09:53.772000 54072 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  52%|█████▏    | 70/134 [00:00<00:00, 692.93it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 780.87it/s]
+  E1_test: 50/306 (0.59 s/query)
+  E1_test: 100/306 (0.63 s/query)
+  E1_test: 150/306 (0.57 s/query)
+  E1_test: 200/306 (0.59 s/query)
+  E1_test: 250/306 (0.54 s/query)
+  E1_test: 300/306 (0.49 s/query)
+{
+ "overall": {
+  "R@1": 0.6569,
+  "R@10": 0.8922,
+  "R@30": 0.9216,
+  "R@100": 0.9379,
+  "MRR@10": 0.741,
+  "nDCG@10": 0.7777
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 266.5,
+   "p95": 1604.0
+  },
+  "filter": {
+   "p50": 0.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 251.0,
+   "p95": 1575.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:12:24.019000 54199 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  45%|████▍     | 60/134 [00:00<00:00, 590.20it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 671.11it/s]
+  E1h_test: 50/306 (0.66 s/query)
+  E1h_test: 100/306 (0.66 s/query)
+  E1h_test: 150/306 (0.60 s/query)
+  E1h_test: 200/306 (0.62 s/query)
+  E1h_test: 250/306 (0.57 s/query)
+  E1h_test: 300/306 (0.52 s/query)
+{
+ "overall": {
+  "R@1": 0.7386,
+  "R@10": 0.9379,
+  "R@30": 0.9575,
+  "R@100": 0.9641,
+  "MRR@10": 0.8153,
+  "nDCG@10": 0.8457
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 301.5,
+   "p95": 1527.0
+  },
+  "filter": {
+   "p50": 0.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 283.5,
+   "p95": 1497.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:15:02.840000 54323 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  48%|████▊     | 64/134 [00:00<00:00, 636.40it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 747.11it/s]
+  E2_test: 50/306 (0.62 s/query)
+  E2_test: 100/306 (0.66 s/query)
+  E2_test: 150/306 (0.57 s/query)
+  E2_test: 200/306 (0.59 s/query)
+  E2_test: 250/306 (0.54 s/query)
+  E2_test: 300/306 (0.49 s/query)
+{
+ "overall": {
+  "R@1": 0.6667,
+  "R@10": 0.8693,
+  "R@30": 0.9085,
+  "R@100": 0.9183,
+  "MRR@10": 0.7439,
+  "nDCG@10": 0.7748
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 275.5,
+   "p95": 1515.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 263.5,
+   "p95": 1496.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:17:33.866000 54506 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   1%|▏         | 2/134 [00:00<00:09, 14.12it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 674.66it/s]
+  E1d_test: 50/306 (0.96 s/query)
+  E1d_test: 100/306 (0.75 s/query)
+  E1d_test: 150/306 (0.63 s/query)
+  E1d_test: 200/306 (0.62 s/query)
+  E1d_test: 250/306 (0.57 s/query)
+  E1d_test: 300/306 (0.51 s/query)
+{
+ "overall": {
+  "R@1": 0.683,
+  "R@10": 0.8987,
+  "R@30": 0.9346,
+  "R@100": 0.951,
+  "MRR@10": 0.7581,
+  "nDCG@10": 0.7925
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 263.5,
+   "p95": 1425.0
+  },
+  "filter": {
+   "p50": 2.0,
+   "p95": 4.0
+  },
+  "phase1": {
+   "p50": 243.0,
+   "p95": 1391.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:20:11.672000 54669 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   1%|▏         | 2/134 [00:00<00:08, 16.36it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 664.50it/s]
+  E2d_test: 50/306 (0.65 s/query)
+  E2d_test: 100/306 (0.65 s/query)
+  E2d_test: 150/306 (0.58 s/query)
+  E2d_test: 200/306 (0.60 s/query)
+  E2d_test: 250/306 (0.55 s/query)
+  E2d_test: 300/306 (0.50 s/query)
+{
+ "overall": {
+  "R@1": 0.683,
+  "R@10": 0.8987,
+  "R@30": 0.9346,
+  "R@100": 0.9477,
+  "MRR@10": 0.7603,
+  "nDCG@10": 0.7942
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 275.0,
+   "p95": 1532.0
+  },
+  "filter": {
+   "p50": 4.0,
+   "p95": 5.0
+  },
+  "phase1": {
+   "p50": 256.0,
+   "p95": 1503.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:22:44.977000 54807 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  52%|█████▏    | 70/134 [00:00<00:00, 675.66it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 765.47it/s]
+  E3_test: 50/306 (0.68 s/query)
+  E3_test: 100/306 (0.67 s/query)
+  E3_test: 150/306 (0.61 s/query)
+  E3_test: 200/306 (0.62 s/query)
+  E3_test: 250/306 (0.58 s/query)
+  E3_test: 300/306 (0.53 s/query)
+{
+ "overall": {
+  "R@1": 0.7516,
+  "R@10": 0.9379,
+  "R@30": 0.9608,
+  "R@100": 0.9673,
+  "MRR@10": 0.8252,
+  "nDCG@10": 0.8533
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 313.0,
+   "p95": 1556.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 295.5,
+   "p95": 1522.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:25:26.610000 54977 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 11365.76it/s]
+  E4_test: 50/306 (0.66 s/query)
+  E4_test: 100/306 (0.66 s/query)
+  E4_test: 150/306 (0.60 s/query)
+  E4_test: 200/306 (0.62 s/query)
+  E4_test: 250/306 (0.58 s/query)
+  E4_test: 300/306 (0.53 s/query)
+{
+ "overall": {
+  "R@1": 0.7614,
+  "R@10": 0.9314,
+  "R@30": 0.9542,
+  "R@100": 0.9673,
+  "MRR@10": 0.831,
+  "nDCG@10": 0.8563
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 311.0,
+   "p95": 1626.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 298.0,
+   "p95": 1599.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:28:07.250000 55124 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  51%|█████▏    | 69/134 [00:00<00:00, 680.22it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 590.31it/s]
+  E3_part1w_test: 50/306 (0.66 s/query)
+  E3_part1w_test: 100/306 (0.66 s/query)
+  E3_part1w_test: 150/306 (0.60 s/query)
+  E3_part1w_test: 200/306 (0.62 s/query)
+  E3_part1w_test: 250/306 (0.57 s/query)
+  E3_part1w_test: 300/306 (0.52 s/query)
+{
+ "overall": {
+  "R@1": 0.3954,
+  "R@10": 0.8824,
+  "R@30": 0.9379,
+  "R@100": 0.9641,
+  "MRR@10": 0.5569,
+  "nDCG@10": 0.6361
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 307.0,
+   "p95": 1577.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 290.5,
+   "p95": 1549.0
+  },
+  "coverage": {
+   "p50": 0.0,
+   "p95": 0.0
+  }
+ }
+}
+W1108 19:30:48.022000 55300 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  48%|████▊     | 64/134 [00:00<00:00, 611.29it/s]Loading weights:  94%|█████████▍| 126/134 [00:00<00:00, 557.62it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 579.48it/s]
+{
+ "index": "index",
+ "model": "Alibaba-NLP/gte-modernbert-base",
+ "split": "test",
+ "anchors": 300,
+ "triplets": 900,
+ "triplet_accuracy": 0.9144444444444444,
+ "roc_auc": 0.8471814814814815,
+ "mean_cos_pos": 0.7969228255748749,
+ "mean_cos_neg": 0.6868155828780598,
+ "margin": 0.11010724269681516
+}
+W1108 19:31:49.231000 55369 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 12261.91it/s]
+{
+ "index": "index_ft",
+ "model": "models/gte-patent-ft",
+ "split": "test",
+ "anchors": 300,
+ "triplets": 900,
+ "triplet_accuracy": 0.9,
+ "roc_auc": 0.8818851851851852,
+ "mean_cos_pos": 0.6006889348725478,
+ "mean_cos_neg": 0.3505637618278464,
+ "margin": 0.25012517304470144
+}
+W1108 19:32:47.310000 55433 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 4286.36it/s]
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|██████████| 105/105 [00:00<00:00, 6816.00it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (562 > 512). Running this sequence through the model will result in indexing errors
+{
+ "filter_cases": 7,
+ "queries": 20,
+ "results_checked": 7510,
+ "violations": 0
+}

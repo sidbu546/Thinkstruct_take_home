@@ -1,0 +1,16 @@
+{
+  "phase1": {
+    "device": "cpu",
+    "n": 20,
+    "total_p50_ms": 180.5,
+    "total_p95_ms": 1197,
+    "rerank_p50_ms": 0.0
+  },
+  "phase1_top100_then_bge_rerank_top30": {
+    "device": "mps",
+    "n": 20,
+    "total_p50_ms": 15826.0,
+    "total_p95_ms": 16944,
+    "rerank_p50_ms": 15464.0
+  }
+}

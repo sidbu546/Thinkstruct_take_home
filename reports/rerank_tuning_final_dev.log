@@ -1,0 +1,130 @@
+W1108 21:17:03.231000 62039 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 24488.55it/s]
+  E4_dev: 50/234 (0.46 s/query)
+  E4_dev: 100/234 (0.37 s/query)
+  E4_dev: 150/234 (0.33 s/query)
+  E4_dev: 200/234 (0.28 s/query)
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 20994.50it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (570 > 512). Running this sequence through the model will result in indexing errors
+  E6_bge_a0.2_b0.0_dev: 50/234 (13.43 s/query)
+  E6_bge_a0.2_b0.0_dev: 100/234 (13.64 s/query)
+  E6_bge_a0.2_b0.0_dev: 150/234 (21.54 s/query)
+  E6_bge_a0.2_b0.0_dev: 200/234 (19.60 s/query)
+  bge alpha=0.2 beta=0.0: MRR@10 0.9505 (phase 1 0.9462)
+  E6_bge_a0.2_b0.1_dev: 50/234 (0.78 s/query)
+  E6_bge_a0.2_b0.1_dev: 100/234 (0.76 s/query)
+  E6_bge_a0.2_b0.1_dev: 150/234 (0.72 s/query)
+  E6_bge_a0.2_b0.1_dev: 200/234 (0.62 s/query)
+  bge alpha=0.2 beta=0.1: MRR@10 0.9505 (phase 1 0.9462)
+  E6_bge_a0.2_b0.2_dev: 50/234 (1.09 s/query)
+  E6_bge_a0.2_b0.2_dev: 100/234 (0.90 s/query)
+  E6_bge_a0.2_b0.2_dev: 150/234 (0.83 s/query)
+  E6_bge_a0.2_b0.2_dev: 200/234 (0.70 s/query)
+  bge alpha=0.2 beta=0.2: MRR@10 0.9505 (phase 1 0.9462)
+  E6_bge_a0.3_b0.0_dev: 50/234 (1.05 s/query)
+  E6_bge_a0.3_b0.0_dev: 100/234 (0.90 s/query)
+  E6_bge_a0.3_b0.0_dev: 150/234 (0.82 s/query)
+  E6_bge_a0.3_b0.0_dev: 200/234 (0.71 s/query)
+  bge alpha=0.3 beta=0.0: MRR@10 0.9505 (phase 1 0.9462)
+  E6_bge_a0.3_b0.1_dev: 50/234 (1.17 s/query)
+  E6_bge_a0.3_b0.1_dev: 100/234 (0.97 s/query)
+  E6_bge_a0.3_b0.1_dev: 150/234 (0.88 s/query)
+  E6_bge_a0.3_b0.1_dev: 200/234 (0.75 s/query)
+  bge alpha=0.3 beta=0.1: MRR@10 0.951 (phase 1 0.9462)
+  E6_bge_a0.3_b0.2_dev: 50/234 (1.11 s/query)
+  E6_bge_a0.3_b0.2_dev: 100/234 (0.98 s/query)
+  E6_bge_a0.3_b0.2_dev: 150/234 (0.80 s/query)
+  E6_bge_a0.3_b0.2_dev: 200/234 (0.67 s/query)
+  bge alpha=0.3 beta=0.2: MRR@10 0.951 (phase 1 0.9462)
+  E6_bge_a0.5_b0.0_dev: 50/234 (1.32 s/query)
+  E6_bge_a0.5_b0.0_dev: 100/234 (1.10 s/query)
+  E6_bge_a0.5_b0.0_dev: 150/234 (0.96 s/query)
+  E6_bge_a0.5_b0.0_dev: 200/234 (0.80 s/query)
+  bge alpha=0.5 beta=0.0: MRR@10 0.9415 (phase 1 0.9462)
+  E6_bge_a0.5_b0.1_dev: 50/234 (1.06 s/query)
+  E6_bge_a0.5_b0.1_dev: 100/234 (0.90 s/query)
+  E6_bge_a0.5_b0.1_dev: 150/234 (0.82 s/query)
+  E6_bge_a0.5_b0.1_dev: 200/234 (0.70 s/query)
+  bge alpha=0.5 beta=0.1: MRR@10 0.9426 (phase 1 0.9462)
+  E6_bge_a0.5_b0.2_dev: 50/234 (1.11 s/query)
+  E6_bge_a0.5_b0.2_dev: 100/234 (0.92 s/query)
+  E6_bge_a0.5_b0.2_dev: 150/234 (0.83 s/query)
+  E6_bge_a0.5_b0.2_dev: 200/234 (0.70 s/query)
+  bge alpha=0.5 beta=0.2: MRR@10 0.9428 (phase 1 0.9462)
+{
+  "phase1_E4_dev": 0.9462,
+  "grid": [
+    {
+      "alpha": 0.2,
+      "beta": 0.0,
+      "MRR@10": 0.9505,
+      "R@1": 0.9231,
+      "R@10": 0.9829
+    },
+    {
+      "alpha": 0.2,
+      "beta": 0.1,
+      "MRR@10": 0.9505,
+      "R@1": 0.9231,
+      "R@10": 0.9829
+    },
+    {
+      "alpha": 0.2,
+      "beta": 0.2,
+      "MRR@10": 0.9505,
+      "R@1": 0.9231,
+      "R@10": 0.9829
+    },
+    {
+      "alpha": 0.3,
+      "beta": 0.0,
+      "MRR@10": 0.9505,
+      "R@1": 0.9231,
+      "R@10": 0.9829
+    },
+    {
+      "alpha": 0.3,
+      "beta": 0.1,
+      "MRR@10": 0.951,
+      "R@1": 0.9231,
+      "R@10": 0.9872
+    },
+    {
+      "alpha": 0.3,
+      "beta": 0.2,
+      "MRR@10": 0.951,
+      "R@1": 0.9231,
+      "R@10": 0.9872
+    },
+    {
+      "alpha": 0.5,
+      "beta": 0.0,
+      "MRR@10": 0.9415,
+      "R@1": 0.906,
+      "R@10": 0.9872
+    },
+    {
+      "alpha": 0.5,
+      "beta": 0.1,
+      "MRR@10": 0.9426,
+      "R@1": 0.906,
+      "R@10": 0.9872
+    },
+    {
+      "alpha": 0.5,
+      "beta": 0.2,
+      "MRR@10": 0.9428,
+      "R@1": 0.906,
+      "R@10": 0.9872
+    }
+  ],
+  "best": {
+    "alpha": 0.3,
+    "beta": 0.1,
+    "MRR@10": 0.951,
+    "R@1": 0.9231,
+    "R@10": 0.9872
+  },
+  "depth": 100,
+  "device": "mps"
+}

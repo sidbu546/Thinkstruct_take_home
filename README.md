@@ -1,1 +1,461 @@
-# Thinkstruct_take_home
+# Patent Claim Search
+
+A local, reproducible hybrid search engine for vehicle patent applications (2024–2025) that finds
+**which other applications overlap with an idea, a claim, or a whole patent, and exactly where**:
+which claim, which claim element, which description passage.
+
+| Document | What's in it |
+|---|---|
+| **README.md** (this file) | problem statement, how to run, results |
+| [DESIGN.md](DESIGN.md) | how the engine (Part 1) and its two enhancements (Part 3) work, and why |
+| [SCALE.md](SCALE.md) | Part 2: running this at 10M patents (components, pipelines, cost, errors) and the proof-of-concept |
+
+Status: **Parts 1, 2 and 3 are complete.** Part 1 (§2–§4) and Part 3 (§5) are implemented and measured.
+Part 2 is designed in SCALE.md, and its proof-of-concept is built and measured (§6).
+
+---
+
+## 1. Problem statement
+
+Examiners and attorneys judge novelty and overlap **element by element**: a claim is anticipated only
+if every one of its elements is disclosed in a reference. So the tool must:
+
+1. take a natural-language query, a claim, or a patent in the corpus;
+2. return ranked patents **with the exact passage that matched**, and for claims, **each element's
+   evidence** (found / weak / not found / undetermined);
+3. let the user constrain results the way examiners do: by **classification code prefix**, by
+   **keywords in the title or abstract**, by a **specific title**, by filing week;
+4. **never hide a data gap**. If a patent's source data is defective (e.g. its claim 1 lost its
+   opening words), every output that relies on it says so and marks the assessment provisional,
+   pending data research. A gap is never reported as "not disclosed".
+
+## 2. How the code addresses it
+
+```
+JSON files → load (quarantine, dedupe) → validate (data issues) → parse claims → adaptive chunks
+          → local embedding (pinned model, CPU) → SQLite (+FTS5) + vectors.npy + manifest.json
+
+query → filters first (B-tree / FTS5) → allowed set → dense (exact over allowed rows) + BM25
+      → reciprocal rank fusion → roll up to patents → element coverage → data notices → JSON
+```
+
+- **Adaptive chunking.** Each claim gets as much context as it needs. Simple claims become one small
+  chunk. Dependent claims carry their ancestor chain, so "wherein the content is 75 mol %" is embedded
+  with the claims it refines. Multi-element claims also get one chunk per element. Description paragraphs
+  are merged while on-topic and split where the topic shifts, sized by density. See DESIGN.md §3.3.
+- **Hybrid search that gets faster with filters.** Filters run first on indexes built for them, and
+  vector scoring only touches the allowed patents' chunks (DESIGN.md §5.1).
+- **Three query modes:** `text`; `claim` (claims weighted up, element coverage on); `patent` (each
+  independent claim of a corpus patent becomes a query, the patent itself is excluded, and the output is
+  a claim map).
+- **One output contract:** a typed JSON response (`patent_search/schemas.py`). The CLI text view, the
+  Markdown/CSV claim charts and the API all render that same object.
+
+### Missing and defective data: the choice made
+
+**Nothing is excluded.** Every record with an identifier is indexed with whatever it has. Records
+without an identifier are quarantined and listed. Every defect becomes a row in `data_issues` with a
+severity and a research status. Each patent gets a `data_status` (`complete` / `partial` /
+`incomplete`), and every search output that relies on an affected record carries a notice that the
+assessment is provisional, will be updated once data research is complete, and should be re-examined
+then. Element coverage reports `undetermined` (never `not_found`) when the data that could disclose
+the element is missing.
+
+What the ingest found in the small dataset is in [§4](#4-results-part-1).
+
+## 3. How to run (Part 1)
+
+Requirements: Python 3.12, about 1.5 GB free disk (model + index). No GPU, no external service, no API key.
+Everything, including embedding, runs locally.
+
+```bash
+uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.lock
+```
+
+```bash
+unzip -q UTF-8patent_data_small.zip          # creates data/patent_data_small/
+```
+
+```bash
+.venv/bin/python -m patent_search build-index --data data/patent_data_small
+```
+
+The first build downloads the pinned model (`Alibaba-NLP/gte-modernbert-base` @ `e7f32e3`) and encodes
+every chunk on CPU; see §4 for the measured time. Re-runs reuse the embedding cache.
+
+```bash
+.venv/bin/python -m patent_search verify-index
+```
+
+Try it interactively (the model loads once, then type one query after another; `help` shows examples, `quit` leaves):
+
+```bash
+.venv/bin/python -m patent_search interactive
+```
+
+One-off searches:
+
+```bash
+.venv/bin/python -m patent_search search "tire with sound absorbing foam in the cavity" --cpc B60C
+.venv/bin/python -m patent_search search --mode claim "a rim; a disk with spokes; and a wall portion partially closing the air holes between the spokes"
+.venv/bin/python -m patent_search search --mode patent --doc 20240165989 --export claim_chart.md
+.venv/bin/python -m patent_search search "spoke" --kw carbon --kw-field abstract --cpc B60B --format json
+.venv/bin/python -m patent_search search --title "SPOKE"            # filter-only: exact title
+.venv/bin/python -m patent_search show 20240051333
+.venv/bin/python -m patent_search data-issues --severity high
+```
+
+API (same JSON):
+
+```bash
+.venv/bin/uvicorn patent_search.api.app:app --port 8000      # then open http://localhost:8000/docs
+```
+
+Tests (use a fake hashed bag-of-words encoder on 4 weekly files, so they run in seconds without the model):
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+## 4. Results (Part 1)
+
+These are the Part 1 measurements, taken with Part 1's original claim-mode weights. Part 3 (§5)
+re-tuned those weights on the dev split.
+
+All numbers were measured on the machine this was built on: Apple M4 (10 cores), 24 GB RAM, **CPU only**,
+Python 3.12, versions in `requirements.lock`. The source for each is `index/manifest.json`,
+`index/ingest_report.json` or `reports/`.
+
+### 4.1 What ingest found (small dataset)
+
+| | Count | Handling |
+|---|---|---|
+| Patents loaded | 640 (64 weekly files) | all indexed; 0 quarantined, 0 duplicates |
+| Active claims | 10,451 | parsed: number, dependencies, depth, elements, tier |
+| Canceled claims | 1,031 (from 167 items, 71 of them ranges like `1 - 5 . (canceled)`) | kept as status rows, shown in claim maps, not searched |
+| Empty description paragraphs | 20,819 | structural blank lines in the source, dropped from chunking |
+
+**Data issues** (all open, pending data research; `python -m patent_search data-issues`):
+
+| Issue | Patents | Severity | Effect on outputs |
+|---|---|---|---|
+| `claim1_preamble_missing`: claim 1 starts mid-sentence | 501 | high | notice on results; claim-1 matches provisional |
+| `claim_opening_missing`: a later claim starts mid-sentence (its "according to claim N" may be lost) | 511 | high | notice; such claims are treated as independent until researched |
+| `description_thin`: < 50 words of description | 127 | high | coverage reports `undetermined`, not `not_found` |
+| `parent_claim_unresolved`: a dependent claim cites a claim that isn't there | 36 | high | that claim is indexed without its parent's text; notice |
+| `claim_number_inferred`: claim number not in source | 613 | medium | shown as "number inferred" |
+| `claim_canceled` / `classification_ambiguous` | 89 / 640 | info | listed; no per-result notice |
+
+`data_status`: **622 partial, 18 complete, 0 incomplete.** Nearly every patent has at least one
+extraction defect, mostly the lost claim-1 opening, so nearly every result carries a notice. That is
+intended. The defects are real and affect claim matching, so they're shown rather than hidden.
+
+### 4.2 Adaptive chunks
+
+| Kind | Chunks | Notes |
+|---|---|---|
+| claim | 10,451 | tiers: 1,549 simple · 6,479 moderate · 2,423 complex; dependents carry their ancestor chain |
+| element | 6,932 | one per limitation of moderate/complex independent claims |
+| description | 15,150 | merged/split by topic and density; median 125 words |
+| abstract | 640 | |
+| **total** | **33,173** | 5.31M tokens; 0 over the 2,048-token limit; 31,110 distinct texts |
+
+### 4.3 Build and reproducibility
+
+- **Embedding** runs on CPU at 9–17 chunks/s, depending on chunk length. A from-scratch build of the
+  31,110 distinct texts takes **≈ 40 minutes** (estimated from those rates; this index was built across
+  three resumable runs that reused the cache). Re-running with an unchanged cache takes **15 s**.
+- Loading the checkpoint in float16 (the library default for this model) gave 1.1 chunks/s on CPU. The
+  encoder forces **float32**, which is about 13× faster and deterministic.
+- `verify-index`: **PASS**. Data hashes, chunk digest and vectors hash all match. Re-encoding a
+  200-chunk sample reproduces stored vectors to max |diff| 3.3e-7 (cosine 1.000000). A build without the
+  cache (`--no-cache`) is deterministic. Builds that reuse a cache written by earlier runs can differ from
+  it by ~1e-7 per value because batch padding differs; that is within verify's 1e-4 tolerance.
+
+### 4.4 Search quality and speed
+
+**Sanity check, not an evaluation.** Pasting one of 100 random independent claims back in as a `claim`
+query returns its own patent **first 95%** of the time and in the **top 5 99%** of the time. This is
+easy, because the claim's own chunk is in the index. Part 3 builds the real evaluation, with the
+patent's own claims masked out.
+
+**Latency** (warm, model loaded, CPU):
+
+| Request | p50 | p95 |
+|---|---|---|
+| text query | 27 ms | 30 ms |
+| text query + CPC + keyword filters | 32 ms | 34 ms |
+| claim query (with element sub-queries and coverage) | 66 ms | 475 ms |
+| patent mode (each independent claim as a query + claim map) | 733 ms | 1,371 ms |
+| filters only (no query) | < 1 ms | < 1 ms |
+
+Filtering first makes the vector step cheaper (exact scoring over only the allowed rows). One fix
+mattered a lot: restricting FTS5 BM25 with `rowid IN (subquery)` took ~2 s per filtered query;
+a `JOIN` on the same temp table gives identical results in ~3 ms.
+
+### 4.5 Element-coverage thresholds (calibrated, no labels)
+
+`scripts/calibrate_coverage.py` → `reports/coverage_calibration.json` (300 random claims, seed 13).
+For each claim element, it takes the best cosine against:
+
+| Compared with | Median | Share ≥ `weak` (0.744) | Share ≥ `found` (0.802) |
+|---|---|---|---|
+| its own patent's abstract + description (positives) | 0.897 | 99.2% | 96.4% |
+| other patents, same subclass (some genuinely overlap) | 0.672 | 13.0% | 2.5% |
+| patents in other subclasses (negatives) | 0.622 | 1.0% | 0.05% |
+
+`found` = 97.5th percentile of same-subclass similarity; `weak` = 99th percentile of
+other-subclass similarity. The first choice (99th percentile of other-subclass for `found`) let 13% of
+same-subclass look-alikes count as "found", which is too generous for a novelty signal, so it was
+tightened. These are similarity cut-offs, not legal judgments. They get re-tuned against labels in Part 3.
+
+## 5. Part 3: evaluation & training, and two-phase search
+
+**Enhancements picked:** (A) **evaluation and training** and (B) **two-phase search**. Why these two:
+they need no extra data (the non-English sample for translation was never provided), they run
+locally, and they reinforce each other. (A) is the measurement that says whether (B), the fine-tuned
+model, and the Part 1 choices (adaptive chunking, hybrid fusion, chunk weights) actually help.
+
+### 5.1 How Part 3 connects to Part 1 (one system, not a side tool)
+
+```
+query ─► filters ─► PHASE 1: hybrid retrieval (Part 1) ─► top 100 ─► PHASE 2: cross-encoder ─► top 30 ─► JSON
+                    bi-encoder = base or FINE-TUNED (A)              bge-reranker-base, Mac GPU (opt-in: --rerank)
+evaluation (A) ─► calls the same Engine.search ─► runs/*.jsonl ─► reports/metrics.json ─► tuned defaults in config.py
+```
+
+| Part 1 piece | What Part 3 adds there |
+|---|---|
+| `Engine._search` | phase 2 (`search/rerank.py`) reranks the phase-1 **top 100** and returns the **top 30**; filters are already applied, so it can only reorder (0 filter violations in 7,510 checked results) |
+| `SearchRequest/Response` | schema 1.1 (additive): `rerank`, `rerank_model`, `rerank_depth`, `retrieval`, `chunk_kinds`; `signals.phase1_rank`, `signals.rerank`, `stage_ms`, `pipeline_notices` |
+| `build-index` | `--chunking fixed` (baseline) and `--model models/gte-patent-ft` (fine-tuned); the engine reads the model from the index manifest |
+| `config.py` | claim-mode chunk weights and rerank α/β are the **dev-tuned** values |
+| coverage | thresholds calibrated per index (`<index>/coverage_calibration.json`) |
+| CLI / API / text view | `--rerank`, `--rerank-model bge`, `--rerank-depth`, `--retrieval`; `(was N)` shows each result's phase-1 rank |
+
+### 5.2 Evaluation data (silver labels, from document structure)
+
+There are no human relevance judgments, so labels come from structure (`eval build-sets`):
+
+- **T1, claim → patent:** an independent claim is the query; the relevant patent is its own, with **its own claim and element chunks hidden**, so it must be found through its abstract or description.
+- **T2, partial claim → patent:** 2–3 elements of a claim, which is the usual partial-overlap situation.
+- **T4, pairs:** (claim, own abstract) vs (claim, **hard negatives**). Hard negatives are other patents in the same CPC subclass ranked 5–50 by the engine, excluding the same family and near-duplicates.
+- **T5, filters:** no result may violate a filter, before or after reranking.
+- **Splits by patent family** (same title filed < 8 weeks apart, or near-identical abstracts): 384 / 128 / 128 patents, 518 families, seed 13. Dev: 234 queries; test: 306. Training: 2,649 triplets from the train split only.
+- Patents with data gaps are **kept**. Every query records its source patent's `data_status`. Only 7 dev/test queries come from patents with complete data, so the complete-vs-partial breakdown is reported but too thin to conclude from.
+
+All choices (weights, α/β, model selection) were made on **dev**. **Test** was run once per final configuration.
+
+### 5.3 Results (test split, 306 queries; every choice made on dev)
+
+All rows use the dev-tuned claim-mode chunk weights, except the "Part 1 weights" reference row.
+Rerank rows: phase 1 hands its top 100 patents to `bge-reranker-base` (Mac GPU), which returns the
+top 30 (α 0.3, β 0.1, tuned on dev).
+
+**Experiment matrix (test, 306 queries)**
+
+| Exp | Bi-encoder | Chunking | Retrieval | Rerank | MRR@10 [95% CI] | R@1 | R@10 | R@100 |
+|---|---|---|---|---|---|---|---|---|
+| E0 | — | adaptive | BM25 only | — | 0.811 [0.775, 0.846] | 0.729 | 0.941 | 0.961 |
+| E1 | `gte-modernbert-base` | fixed 200-word windows | dense only | — | 0.741 [0.696, 0.785] | 0.657 | 0.892 | 0.938 |
+| E2 | `gte-modernbert-base` | adaptive | dense only | — | 0.744 [0.702, 0.785] | 0.667 | 0.869 | 0.918 |
+| E3 | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF | — | 0.825 [0.790, 0.858] | 0.752 | 0.938 | 0.967 |
+| E4 | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | — | 0.831 [0.797, 0.866] | 0.761 | 0.931 | 0.967 |
+| E5 | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.824 [0.789, 0.857] | 0.752 | 0.938 | 0.967 |
+| **E6** | `gte-modernbert-base`<br>fine-tuned (`gte-patent-ft`) | adaptive | hybrid<br>dense + BM25, fused by RRF | `bge-reranker-base`<br>top 100 → 30 | 0.837 [0.804, 0.871] | 0.768 | 0.938 | 0.967 |
+
+**Ablations and reference rows (test)**
+
+| Exp | Bi-encoder | Chunking | Retrieval | Rerank | MRR@10 [95% CI] | R@1 | R@10 | R@100 |
+|---|---|---|---|---|---|---|---|---|
+| E3 · Part 1 weights | `gte-modernbert-base` | adaptive | hybrid<br>dense + BM25, fused by RRF<br>original hand-set claim-mode weights | — | 0.557 [0.515, 0.600] | 0.395 | 0.882 | 0.964 |
+| E1h | `gte-modernbert-base` | fixed 200-word windows | hybrid<br>dense + BM25, fused by RRF | — | 0.815 [0.779, 0.851] | 0.739 | 0.938 | 0.964 |
+| E1d | `gte-modernbert-base` | fixed 200-word windows<br>abstract + description only | dense only | — | 0.758 [0.712, 0.797] | 0.683 | 0.899 | 0.951 |
+| E2d | `gte-modernbert-base` | adaptive<br>abstract + description only | dense only | — | 0.760 [0.719, 0.801] | 0.683 | 0.899 | 0.948 |
+
+**Paired differences on the same test queries** (ΔMRR@10, paired bootstrap 95% CI)
+
+| Change | Δ | 95% CI |
+|---|---|---|
+| dev-tuned chunk weights vs Part 1 weights | +0.268 | [+0.234, +0.303] |
+| adaptive vs fixed chunks (dense, E2 vs E1) | +0.003 | [−0.017, +0.022] |
+| adaptive vs fixed, abstract + description only | +0.002 | [−0.013, +0.016] |
+| hybrid vs BM25 only (E3 vs E0) | +0.015 | [−0.013, +0.041] |
+| fine-tuned vs base bi-encoder (E4 vs E3) | +0.006 | [−0.014, +0.024] |
+| rerank on the base model (E5 vs E3) | −0.001 | [−0.016, +0.014] |
+| rerank on the fine-tuned model (E6 vs E4) | +0.006 | [−0.008, +0.019] |
+| full Part 3 pipeline vs tuned Part 1 (E6 vs E3) | +0.012 | [−0.009, +0.031] |
+
+**Reading the tables:**
+- **The dev-tuned chunk weights are the one clearly real gain** (+0.268).
+- **Everything else is within the noise on test:** adaptive vs fixed chunks, hybrid vs BM25, fine-tuning (which did win on dev: +0.039 [+0.018, +0.062]), and reranking.
+- **E6, the full pipeline, has the highest MRR@10 (0.837)** but is not significantly better than E3 (+0.012 [−0.009, +0.031]).
+- **Reranking on the base model (E5) changes nothing:** the right patent moved up in 19 queries and down in 19.
+- **Reranking on the fine-tuned model (E6) helps slightly:** up in 26, down in 9.
+- **Phase 1 already puts the right patent in the top 100 for 96.7% of queries,** which is the ceiling for phase 2.
+
+**T4, positives vs hard negatives** (bi-encoder only, test, 300 anchors, 900 hard negatives):
+
+| Model | triplet accuracy | ROC-AUC | mean cos pos / neg | margin |
+|---|---|---|---|---|
+| base gte-modernbert | 0.914 | 0.847 | 0.797 / 0.687 | 0.110 |
+| fine-tuned | 0.900 | **0.882** | 0.601 / 0.351 | **0.250** |
+
+**Training** (`train`): 1,570 triplets after a 6-per-patent cap (1,292 with a mined hard negative); 99 steps; max length 256 in training; one
+epoch, batch 16, lr 2e-5, InfoNCE with in-batch plus hard negatives; CPU, seed 13; loss 0.84 → 0.24 in
+47 minutes. Details are in `models/gte-patent-ft/training_card.json`.
+
+**Phase-2 tuning (dev):**
+- **Reranker used: `BAAI/bge-reranker-base`**, on the phase-1 top 100 (2 best chunks each, about 200 pairs), returning the top 30, on the Mac GPU (`mps`). On dev, α 0.3 / β 0.1 was best: MRR@10 0.951 against 0.946 for phase 1 (paired Δ +0.005, CI [−0.001, +0.013]). Giving the reranker more weight hurt (α 0.5: 0.942).
+
+**Serving latency** (fine-tuned index, cold cache, 20 dev claim queries, `scripts/latency_bench.py`):
+
+| Pipeline | p50 | p95 |
+|---|---|---|
+| phase 1 only (default; CPU) | 181 ms | 1.2 s |
+| phase 1 top 100 → bge rerank → top 30 (Mac GPU) | 15.8 s | 16.9 s |
+
+### 5.4 What the results say, and what I did about them
+
+1. **Chunk weights mattered far more than models.** The Part 1 claim-mode weights favoured
+   claim/element chunks. Thousands of short, claim-shaped chunks from *other* patents then outranked
+   the abstract and description that actually disclose a claim's subject matter. Tuning the weights on
+   dev raised test MRR@10 from 0.557 to 0.825. Those weights are now the default.
+2. **Adaptive chunking: no measurable retrieval gain on this task.** Dense adaptive first looked much
+   worse on dev (0.290 vs 0.536). The ablation that searches only abstracts and descriptions showed
+   the passages themselves were as good (0.823 vs 0.807 dev). The gap came from claim-chunk crowding,
+   which the weight tuning fixed. Adaptive chunks are kept for what this metric can't see: claim maps,
+   element coverage, and evidence that shows a dependent claim with its parents.
+3. **Fine-tuning:** it beat the base model on dev and widened the positive/negative margin (0.11 → 0.25),
+   but its test gain is inside the noise, and its element-coverage separation is a little worse (own
+   evidence reaches `found` 92.7% vs 96.4%). By the rule fixed in the design (keep it if dev doesn't
+   drop), it is kept as `index_ft`. The **default index stays the base model**: it performs the same on
+   test, and reproducing it needs no training.
+4. **Reranking** (top 100 → top 30) is wired in, tuned and tested, but its test gain is within the noise
+   (+0.006 on the fine-tuned model, −0.001 on the base model) and it costs about 16 s per query even on
+   the Mac GPU, so it is **opt-in** (`--rerank`). Off-the-shelf
+   cross-encoders don't know patent claims; fine-tuning the cross-encoder on these triplets is the
+   obvious next step (designed as E7, not built).
+5. **Honest limits of the labels.** "Find the claim's own patent" rewards self-similarity. It can't
+   reward finding *other* patents that genuinely overlap, which is the real goal. Human or
+   examiner-citation labels are needed to measure that.
+
+### 5.5 How to run Part 3
+
+The full two-phase pipeline: phase 1 retrieves, the cross-encoder reranks the top 100 on the Mac GPU
+(CPU if no GPU), and the reranked top 30 are shown. Use `--index index_ft` for the fine-tuned model (E6):
+
+```bash
+.venv/bin/python -m patent_search search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank --rerank-model bge
+```
+
+```bash
+.venv/bin/python -m patent_search --index index_ft search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank --rerank-model bge
+```
+
+To reproduce every Part 3 number (local CPU plus the Mac GPU for reranking; several hours; steps and times are listed inside the script):
+
+```bash
+scripts/reproduce_part3.sh
+```
+
+Individual steps:
+
+```bash
+.venv/bin/python -m patent_search eval build-sets
+```
+
+```bash
+.venv/bin/python -m patent_search eval run --exp E3 --split dev
+```
+
+```bash
+.venv/bin/python -m patent_search train
+```
+
+```bash
+.venv/bin/python -m patent_search --index index_ft build-index --model models/gte-patent-ft
+```
+
+```bash
+.venv/bin/python -m patent_search eval report --split test
+```
+
+Outputs: `eval_data/` (sets), `runs/*.jsonl` (one line per query, the JSON contract flattened),
+`reports/metrics.json` (every metric, breakdowns by task / tier / data status, CIs),
+`reports/eval_report_test.md` (tables), and `reports/*tuning*` (grids).
+
+## 6. Part 2: implementation at scale, and the proof-of-concept
+
+The design for 10M patents is in **[SCALE.md](SCALE.md)**: components, pipelines (backfill, weekly,
+data research, re-embedding, query), cost, error handling, status tracking, challenges and an
+implementation plan. Its sizing and cost use numbers measured by the proof-of-concept below.
+
+**Proof-of-concept** (`poc/`; details and full results in SCALE.md §10): a local **job queue**
+(SQLite, WAL) with **leases, retries with backoff and a dead state**, **parallel worker processes**
+running the Part 1 ingest code on **real batch files from the large dataset zip** (read without
+extracting), with corrupted-file salvage, quarantine, dedupe, data-issue tracking, fault injection and
+a **live status dashboard**.
+
+```bash
+.venv/bin/python -m poc.enqueue --zip coding_challenge_large_data.zip --jobs job_000 --limit 20
+```
+
+```bash
+.venv/bin/python -m poc.faults --zip coding_challenge_large_data.zip --out poc_data/faults
+```
+
+```bash
+.venv/bin/python -m poc.dashboard
+```
+
+```bash
+.venv/bin/python -m poc.worker --workers 4 --fail-rate 0.05 --embed-sample 3 --kill-one-after 60
+```
+
+```bash
+.venv/bin/python -m poc.status
+```
+
+The dashboard is at http://localhost:8001. A run over 20 batch files takes about 35 minutes on the M4,
+most of it the embedding sample; `--embed-sample 0` skips that.
+
+| Result (20 real batch files + 3 fault inputs, 4 workers) | |
+|---|---|
+| Jobs | 20 succeeded, 2 partial (salvaged), 1 dead (missing file, after 3 attempts); 4 retries |
+| Worker killed mid-job | its job was re-claimed after the lease expired and succeeded; no duplicate rows (20,539 rows = 20,539 doc numbers) |
+| Truncated file | 567 records salvaged, the rest quarantined with its byte offset |
+| Real-data duplicates | 20 exact (skipped) and 8 conflicting (kept as versions, `duplicate_conflict` issue) |
+| Data gaps | classification missing for 37.9%, filing date missing for 100% of the large set; flagged, not dropped |
+| Throughput | ~19 patents/s per worker for parse + validate + adaptive chunking (chunking is ~99% of it); ~96 chunks and ~19.4k tokens per patent |
+| 10M extrapolation | ~147 worker-hours to parse and chunk; ~1,075 GPU-hours to embed at an assumed 50k tokens/s per L4 |
+
+## 7. Known limitations
+
+- **Lost claim openings** (501 claim-1s, 511 later claims): the title is prepended as a stopgap, and
+  some dependent claims are probably treated as independent. Fixing this needs the source XML
+  (named in each record's `filename`): data research, not code.
+- **Element splitting is rule-based** (`;`, transitional phrase, `wherein`), so very short elements
+  ("a rim") match weakly by construction.
+- **Coverage is cosine similarity**, calibrated per index without human labels; see §4.5.
+- **Silver labels only** (§5.4, point 5). The off-the-shelf rerankers are not patent-trained.
+- **Patent-mode latency** grows with the number of independent claims (up to 10 are used); patent mode
+  doesn't rerank.
+- **Not supported yet:** patents outside the corpus (no fetcher).
+- **The proof-of-concept is single-host** (SQLite); it shows the job semantics and measures throughput,
+  not distributed coordination, OpenSearch at 10M or GPU embedding speed.
+
+## 8. Repository layout
+
+```
+patent_search/   ingest/ (load, normalize, claims, validate, chunk) · embed/ (encoder, cache)
+                 index/ (db, build, verify) · search/ (filters, planner, query, hybrid, rerank, coverage, engine)
+                 eval/ (build_sets, runner, metrics, report) · train/ (finetune)
+                 render/ (text, chart) · api/app.py · cli.py · schemas.py · notices.py · config.py · manifest.py
+poc/             Part 2 proof-of-concept: db, queue, enqueue, process, worker, faults, status, dashboard
+scripts/         calibrate_coverage.py · tune_kind_weights.sh · tune_rerank_final.py
+                 run_test_phase1.sh · run_test_rerank.sh · latency_bench.py · readme_tables.py · reproduce_part3.sh
+tests/           34 tests (fake encoder and reranker; ~3 s)
+eval_data/ runs/ reports/ models/ index/ index_fixed/ index_ft/ cache/ poc_data/   generated (not in git)
+DESIGN.md        engine and enhancements design                   SCALE.md   10M-patent design + PoC results
+```

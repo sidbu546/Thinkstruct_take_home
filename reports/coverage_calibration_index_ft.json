@@ -1,0 +1,33 @@
+{
+  "model": "models/gte-patent-ft",
+  "revision": "local-sha256:547dd312e430f66a",
+  "claims_sampled": 300,
+  "seed": 13,
+  "positives": {
+    "n": 1414,
+    "p10": 0.6637010991573333,
+    "median": 0.8000984489917755,
+    "p90": 0.8927987933158874
+  },
+  "negatives_other_subclass": {
+    "n": 28280,
+    "median": 0.329611137509346,
+    "p99": 0.5760801947116851,
+    "share_at_or_above_found": 0.002050919377652051,
+    "share_at_or_above_weak": 0.010007072135785007
+  },
+  "same_subclass_other_patents (some genuinely overlap)": {
+    "n": 28223,
+    "median": 0.41145050525665283,
+    "p97_5": 0.6393518090248109,
+    "share_at_or_above_found": 0.025015058640116217,
+    "share_at_or_above_weak": 0.0660454239450094
+  },
+  "recommended": {
+    "coverage_found": 0.639,
+    "coverage_weak": 0.576
+  },
+  "share_of_positives_found": 0.9271570014144271,
+  "share_of_positives_at_least_weak": 0.958981612446959,
+  "index": "index_ft"
+}

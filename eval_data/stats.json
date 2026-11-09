@@ -1,0 +1,30 @@
+{
+  "queries": {
+    "dev": {
+      "T1": 150,
+      "T2": 84
+    },
+    "test": {
+      "T1": 224,
+      "T2": 82
+    }
+  },
+  "pairs_dev.jsonl": {
+    "records": 150,
+    "with_hard_negative": 150
+  },
+  "pairs_test.jsonl": {
+    "records": 300,
+    "with_hard_negative": 300
+  },
+  "triplets_train.jsonl": {
+    "records": 2649,
+    "with_hard_negative": 2212
+  },
+  "splits": {
+    "train": 384,
+    "dev": 128,
+    "test": 128
+  },
+  "families": 518
+}

@@ -1,0 +1,33 @@
+{
+  "model": "Alibaba-NLP/gte-modernbert-base",
+  "revision": "e7f32e3c00f91d699e8c43b53106206bcc72bb22",
+  "claims_sampled": 300,
+  "seed": 13,
+  "positives": {
+    "n": 1414,
+    "p10": 0.8326981425285339,
+    "median": 0.8968749940395355,
+    "p90": 0.9435609519481659
+  },
+  "negatives_other_subclass": {
+    "n": 28280,
+    "median": 0.6219162940979004,
+    "p99": 0.7438601684570312,
+    "share_at_or_above_found": 0.0004950495049504951,
+    "share_at_or_above_weak": 0.010007072135785007
+  },
+  "same_subclass_other_patents (some genuinely overlap)": {
+    "n": 28223,
+    "median": 0.672333300113678,
+    "p97_5": 0.8018108040094376,
+    "share_at_or_above_found": 0.025015058640116217,
+    "share_at_or_above_weak": 0.13035467526485492
+  },
+  "recommended": {
+    "coverage_found": 0.802,
+    "coverage_weak": 0.744
+  },
+  "share_of_positives_found": 0.963932107496464,
+  "share_of_positives_at_least_weak": 0.9915134370579916,
+  "index": "index"
+}

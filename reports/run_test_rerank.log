@@ -1,0 +1,86 @@
+W1109 00:17:50.765000 72783 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 6089.83it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 7081.76it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (531 > 512). Running this sequence through the model will result in indexing errors
+  E6_raw_test: 50/306 (22.69 s/query)
+  E6_raw_test: 100/306 (22.91 s/query)
+  E6_raw_test: 150/306 (22.55 s/query)
+  E6_raw_test: 200/306 (21.84 s/query)
+  E6_raw_test: 250/306 (20.89 s/query)
+  E6_raw_test: 300/306 (20.32 s/query)
+{
+ "overall": {
+  "R@1": 0.768,
+  "R@10": 0.9379,
+  "R@30": 0.9608,
+  "R@100": 0.9673,
+  "MRR@10": 0.8372,
+  "nDCG@10": 0.8624
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 19472.0,
+   "p95": 30169.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 177.0,
+   "p95": 1430.0
+  },
+  "coverage": {
+   "p50": 3.0,
+   "p95": 8.0
+  },
+  "rerank": {
+   "p50": 19245.5,
+   "p95": 28895.0
+  }
+ }
+}
+W1109 02:00:56.465000 78491 .venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   1%|▏         | 2/134 [00:00<00:06, 19.28it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 778.71it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 11416.55it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (531 > 512). Running this sequence through the model will result in indexing errors
+  E5_test: 50/306 (8.07 s/query)
+  E5_test: 100/306 (8.21 s/query)
+  E5_test: 150/306 (8.10 s/query)
+  E5_test: 200/306 (8.10 s/query)
+  E5_test: 250/306 (7.87 s/query)
+  E5_test: 300/306 (7.25 s/query)
+{
+ "overall": {
+  "R@1": 0.7516,
+  "R@10": 0.9379,
+  "R@30": 0.9641,
+  "R@100": 0.9673,
+  "MRR@10": 0.8243,
+  "nDCG@10": 0.8525
+ },
+ "n": 306,
+ "latency_ms": {
+  "total": {
+   "p50": 6777.0,
+   "p95": 13341.0
+  },
+  "filter": {
+   "p50": 1.0,
+   "p95": 1.0
+  },
+  "phase1": {
+   "p50": 179.5,
+   "p95": 1536.0
+  },
+  "coverage": {
+   "p50": 3.5,
+   "p95": 8.0
+  },
+  "rerank": {
+   "p50": 6440.5,
+   "p95": 12479.0
+  }
+ }
+}
