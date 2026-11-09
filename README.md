@@ -29,6 +29,59 @@ if every one of its elements is disclosed in a reference. So the tool must:
    opening words), every output that relies on it says so and marks the assessment provisional,
    pending data research. A gap is never reported as "not disclosed".
 
+### 1.1 Inputs
+
+**To build the index**, the system takes the dataset itself: the 64 weekly JSON files of patent
+applications (title, document number, abstract, description paragraphs, claims, classification).
+
+**To search**, a user gives one of three kinds of query, optionally with filters:
+
+| Input | Example | How to give it |
+|---|---|---|
+| A description in plain English | "tire with sound absorbing foam in the cavity" | `search "<text>"` |
+| A claim (pasted text) | "A wheel comprising: a rim; a disk with spokes; and a wall portion …" | `search --mode claim "<claim>"` |
+| A patent in the dataset, by document number | `20240165989` | `search --mode patent --doc <number>` |
+| **Filters** (with any query above, or on their own) | classification starts with `B60C`; abstract contains "tread"; title is "SPOKE"; filed June–December 2024 | `--cpc B60C`, `--cpc-exclude …`, `--kw tread --kw-field abstract` (`--kw-op all / any / phrase`), `--title SPOKE` (`--title-mode exact / phrase`), `--week-from 2024-06-01 --week-to 2024-12-31` |
+
+Options: `--rerank` turns on two-phase search (phase 1's top 100 are reranked by a cross-encoder and
+the top 30 are returned); `--index index_ft`, placed before `search`, uses the fine-tuned model; `--top-k N` sets how many
+results to show; `--format json` prints the raw JSON; `--export chart.md` (or `.csv`) saves a claim chart.
+
+### 1.2 Outputs
+
+Every search returns a **ranked list of patents**. For each patent:
+
+| Output | What it tells the examiner |
+|---|---|
+| Document number, title, classification, filing week, score | which patent it is and how strongly it matched |
+| **Best match** | the exact passage that matched: a claim (a dependent claim is shown with the claims it depends on), a claim element, a description paragraph, or the abstract, with the matched words highlighted |
+| **Element coverage** (claim and patent queries) | for each element of the query claim: `found`, `weak`, `not found` or `undetermined`, with the evidence passage and its similarity score. This is the element-by-element overlap check |
+| **Data status and notices** | whether this patent's source data has gaps (e.g. claim 1 lost its opening words), and that its assessment is provisional until the data is researched |
+| Phase-1 rank (with `--rerank`) | where the patent ranked before reranking, shown as `(was N)` |
+
+For the search as a whole: how many patents matched, counts by classification, filing week and data
+status, the pipeline steps used, and timings. A **patent** query also returns a **claim map**: each
+independent claim of that patent next to the closest claims in other patents.
+
+The same result is available as a terminal view (default), as JSON (`--format json`, or the HTTP API),
+and as a Markdown or CSV claim chart (`--export`). A real example, a claim query restricted to
+vehicle wheels (`--cpc B60B`), first result shown:
+
+```
+Query: claim mode · tier: moderate · 3 elements · filters: cpc_prefix=['B60B']
+Pipeline: filter → dense:exact_subset → bm25 → rrf → coverage   (115 matched · 188 ms)
+
+  1. 20240165989  VEHICLE WHEEL                                         B60B304FI   2024-05-23  score 0.0264  [2/3 found]
+     Best match: claim 5 (number inferred)
+       "a cylindrical rim; a disk including a central connection portion connected to a vehicle
+       body, a ring-shaped connection portion connected to the rim, and a plurality of spokes
+       arranged to connect the central connection po…"
+       element 1 "a rim": weak — provisional: open data gaps (claim1_preamble_missing,
+         claim_opening_missing)
+     ! Data partial: claim 1 lost its opening words; other claims start mid-sentence; claim numbers
+       inferred. Provisional, pending data research; re-examine after the update.
+```
+
 ## 2. How the code addresses it
 
 ```
@@ -45,9 +98,10 @@ query → filters first (B-tree / FTS5) → allowed set → dense (exact over al
   are merged while on-topic and split where the topic shifts, sized by density. See DESIGN.md §3.3.
 - **Hybrid search that gets faster with filters.** Filters run first on indexes built for them, and
   vector scoring only touches the allowed patents' chunks (DESIGN.md §5.1).
-- **Three query modes:** `text`; `claim` (claims weighted up, element coverage on); `patent` (each
-  independent claim of a corpus patent becomes a query, the patent itself is excluded, and the output is
-  a claim map).
+- **Three query modes:** `text`; `claim` (element coverage on, and chunk weights tuned so that other
+  patents' claim-style text doesn't crowd out the abstracts and descriptions that disclose the claim);
+  `patent` (each independent claim of a patent in the dataset becomes a query, the patent itself is
+  excluded, and the output is a claim map).
 - **One output contract:** a typed JSON response (`patent_search/schemas.py`). The CLI text view, the
   Markdown/CSV claim charts and the API all render that same object.
 
