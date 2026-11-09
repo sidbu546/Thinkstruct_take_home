@@ -86,7 +86,15 @@ def main(argv=None) -> int:
     ap.add_argument("--db", default=str(DEFAULT_DB))
     ap.add_argument("--port", type=int, default=8001)
     a = ap.parse_args(argv)
+    import socket
+    with socket.socket() as s:
+        if s.connect_ex(("127.0.0.1", a.port)) == 0:
+            print(f"Port {a.port} is already in use: a dashboard is probably already running at "
+                  f"http://localhost:{a.port}. Open that in a browser, or stop the other process first.")
+            return 1
     import uvicorn
+    print(f"Dashboard running at http://localhost:{a.port}  (open it in a browser; it refreshes every 2 s).\n"
+          f"This command keeps running while the dashboard is up. Press Ctrl+C to stop it.", flush=True)
     uvicorn.run(make_app(Path(a.db)), host="127.0.0.1", port=a.port, log_level="warning")
     return 0
 

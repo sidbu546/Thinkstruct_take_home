@@ -451,28 +451,110 @@ running the Part 1 ingest code on **real batch files from the large dataset zip*
 extracting), with corrupted-file salvage, quarantine, dedupe, data-issue tracking, fault injection and
 a **live status dashboard**.
 
-```bash
-.venv/bin/python -m poc.enqueue --zip coding_challenge_large_data.zip --jobs job_000 --limit 20
-```
+### How to run the proof-of-concept
+
+It uses **two terminals**: one runs the dashboard (a small web server that keeps running), the other
+runs the workers. A run over 20 batch files takes about 35 minutes on the M4, most of it the
+embedding sample (`--embed-sample 0` skips it and takes about 15 minutes).
+
+**Terminal 1: start the dashboard and leave it running.**
 
 ```bash
-.venv/bin/python -m poc.faults --zip coding_challenge_large_data.zip --out poc_data/faults
+cd ~/Desktop/thinkstruct_take_home
 ```
 
 ```bash
 .venv/bin/python -m poc.dashboard
 ```
 
+It prints `Dashboard running at http://localhost:8001 …` and then waits; it does not finish on its
+own. Open http://localhost:8001 in a browser; the page refreshes every 2 seconds. If it says the port
+is already in use, a dashboard is already running: just open the address.
+
+**Terminal 2: queue the work, then start the workers.** Open a new terminal tab (Cmd+T) and go to the
+project folder:
+
+```bash
+cd ~/Desktop/thinkstruct_take_home
+```
+
+Start from an empty queue. A previous run's jobs are already finished, so without this the workers
+would exit immediately with nothing to do. The dashboard does not need restarting; it reads the queue
+fresh on every refresh.
+
+```bash
+rm -rf poc_data
+```
+
+Queue 20 batch files from the large dataset (one job per file). Running it twice adds nothing the
+second time:
+
+```bash
+.venv/bin/python -m poc.enqueue --zip coding_challenge_large_data.zip --jobs job_000 --limit 20
+```
+
+Add three bad inputs to test the error handling: a file cut at 60% of its bytes, a file with duplicate
+and malformed records, and a file that does not exist:
+
+```bash
+.venv/bin/python -m poc.faults --zip coding_challenge_large_data.zip --out poc_data/faults
+```
+
+Start 4 workers. `--fail-rate 0.05` makes 5% of job attempts fail on purpose, `--embed-sample 3`
+embeds 3 patents per job to measure embedding speed, and `--kill-one-after 60` kills worker 0 after 60
+seconds to show that its job is picked up by another worker:
+
 ```bash
 .venv/bin/python -m poc.worker --workers 4 --fail-rate 0.05 --embed-sample 3 --kill-one-after 60
 ```
+
+**What to watch on the dashboard:** jobs move from queued to running to succeeded; the injected
+failure is retried; worker 0 turns "unresponsive" after it is killed, and its job is re-claimed once
+its lease expires (30 s); the truncated file ends "partial" with its unreadable part in quarantine; the
+missing file ends "dead" after 3 attempts; the data-issues and quarantine tables fill in; the
+extrapolation box shows the measured throughput scaled to 10M patents.
+
+When the workers finish, print the same summary in the terminal, then press Ctrl+C in terminal 1 to
+stop the dashboard:
 
 ```bash
 .venv/bin/python -m poc.status
 ```
 
-The dashboard is at http://localhost:8001. A run over 20 batch files takes about 35 minutes on the M4,
-most of it the embedding sample; `--embed-sample 0` skips that.
+### Running more workers
+
+Choose the number with `--workers` at the start:
+
+```bash
+.venv/bin/python -m poc.worker --workers 8 --fail-rate 0.05 --embed-sample 0
+```
+
+Or add workers to a run already in progress, from a third terminal. They join the same queue straight
+away, and because every job is claimed with a lease, no two workers ever process the same job:
+
+```bash
+.venv/bin/python -m poc.worker --workers 2 --embed-sample 0
+```
+
+Workers exit as soon as the queue is empty, so to watch many of them busy for longer, queue more
+files (files already queued are skipped):
+
+```bash
+.venv/bin/python -m poc.enqueue --zip coding_challenge_large_data.zip --jobs job_000,job_001
+```
+
+How many to run on a 10-core, 24 GB laptop:
+
+| Setting | Sensible number of workers | Why |
+|---|---|---|
+| `--embed-sample 0` | up to about 8 | each worker uses about one core for parsing and chunking |
+| `--embed-sample 3` | about 4 | each worker also loads the embedding model (~600 MB) and uses 2 threads |
+
+Beyond that, workers mostly compete for the same cores and total throughput stops improving.
+`--kill-one-after` only ever kills worker 0 of the command it is given to; leave it off when adding
+workers.
+
+### Results
 
 | Result (20 real batch files + 3 fault inputs, 4 workers) | |
 |---|---|
