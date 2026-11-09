@@ -120,15 +120,28 @@ What the ingest found in the small dataset is in [§4](#4-results-part-1).
 ## 3. How to run (Part 1)
 
 Requirements: Python 3.12, about 1.5 GB free disk (model + index). No GPU, no external service, no API key.
-Everything, including embedding, runs locally.
+Everything, including embedding, runs locally. All commands are run from the repository folder.
+
+**1. Get the code and install the exact library versions** (`requirements.lock` pins every package):
 
 ```bash
-uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.lock
+git clone https://github.com/sidbu546/Thinkstruct_take_home.git && cd Thinkstruct_take_home
 ```
+
+```bash
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements.lock
+```
+
+(or, with `uv`: `uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.lock`)
+
+**2. Add the dataset.** Copy `UTF-8patent_data_small.zip` from the assignment into the repository
+folder and unzip it there (the data is not in the repository):
 
 ```bash
 unzip -q UTF-8patent_data_small.zip          # creates data/patent_data_small/
 ```
+
+**3. Build the index and check it:**
 
 ```bash
 .venv/bin/python -m patent_search build-index --data data/patent_data_small
@@ -415,50 +428,63 @@ epoch, batch 16, lr 2e-5, InfoNCE with in-batch plus hard negatives; CPU, seed 1
    reward finding *other* patents that genuinely overlap, which is the real goal. Human or
    examiner-citation labels are needed to measure that.
 
-### 5.5 How to run Part 3
+### 5.5 How to run Part 3 and reproduce the results
 
-The full two-phase pipeline: phase 1 retrieves, the cross-encoder reranks the top 100 on the Mac GPU
-(CPU if no GPU), and the reranked top 30 are shown. Use `--index index_ft` for the fine-tuned model (E6):
+**Prerequisite:** the Part 1 setup and index from §3 (steps 1–3).
+
+**Use the full two-phase pipeline.** Phase 1 retrieves; the cross-encoder reranks the top 100 on the
+Apple GPU (or the CPU if there is none); the reranked top 30 are shown. Add `--index index_ft` to use
+the fine-tuned model (E6); that index exists after step 4 below.
 
 ```bash
-.venv/bin/python -m patent_search search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank --rerank-model bge
+.venv/bin/python -m patent_search search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank
 ```
 
 ```bash
-.venv/bin/python -m patent_search --index index_ft search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank --rerank-model bge
+.venv/bin/python -m patent_search --index index_ft search --mode claim "A pneumatic tire comprising: a tread portion; a pair of bead portions; and a sound absorbing member fixed to the inner surface of the tread portion" --rerank
 ```
 
-To reproduce every Part 3 number (local CPU plus the Mac GPU for reranking; several hours; steps and times are listed inside the script):
+**Check the reported numbers (seconds).** The repository includes the evaluation sets
+(`eval_data/`), the per-query rankings of every final test run (`runs/*_test.jsonl`) and all metrics
+(`reports/metrics.json`). This regenerates every table in §5.3 from them, and the eval report:
 
 ```bash
-scripts/reproduce_part3.sh
-```
-
-Individual steps:
-
-```bash
-.venv/bin/python -m patent_search eval build-sets
-```
-
-```bash
-.venv/bin/python -m patent_search eval run --exp E3 --split dev
-```
-
-```bash
-.venv/bin/python -m patent_search train
-```
-
-```bash
-.venv/bin/python -m patent_search --index index_ft build-index --model models/gte-patent-ft
+.venv/bin/python scripts/readme_tables.py
 ```
 
 ```bash
 .venv/bin/python -m patent_search eval report --split test
 ```
 
-Outputs: `eval_data/` (sets), `runs/*.jsonl` (one line per query, the JSON contract flattened),
-`reports/metrics.json` (every metric, breakdowns by task / tier / data status, CIs),
-`reports/eval_report_test.md` (tables), and `reports/*tuning*` (grids).
+**Reproduce every number from scratch (several hours, unattended).** One script runs all steps in
+order:
+
+```bash
+scripts/reproduce_part3.sh
+```
+
+| # | Step | Produces | Time (Apple M4) |
+|---|---|---|---|
+| 1 | build the evaluation sets | `eval_data/`: family splits, dev/test queries and answers, T4 pairs, training triplets | ~10 min |
+| 2 | build the fixed-chunk baseline index | `index_fixed/` for E1, E1h, E1d | ~30 min |
+| 3 | dev runs, including Part 1's original weights, and the chunk-weight grid | dev results and `reports/kind_weight_grid_dev.log` | ~25 min |
+| 4 | fine-tune the bi-encoder, then index with it | `models/gte-patent-ft/`, `index_ft/` | ~25–45 min + ~45 min |
+| 5 | calibrate element-coverage thresholds | `reports/coverage_calibration*.json` | ~2 min |
+| 6 | dev selection check, T4 pairs on dev, rerank α/β grid on dev | `reports/rerank_tuning_final_dev.json` | ~45 min |
+| 7 | all phase-1 test runs (E0–E4, ablations), T4 on test, T5 filters | `runs/E*_test.jsonl`, `reports/metrics.json` | ~25 min |
+| 8 | reranked test runs E6 and E5 | `runs/E5_test.jsonl`, `runs/E6_test.jsonl` | ~1–2.5 h |
+| 9 | serving latency, tables, report | `reports/latency_bench_index_ft.json`, §5.3 tables, `reports/eval_report_test.md` | ~10 min |
+
+The chosen settings (claim-mode chunk weights, rerank α and β) are already in
+`patent_search/config.py`, so steps 7–8 use them directly. Steps 3 and 6 show how they were chosen on dev.
+
+**How close a rerun gets.** Phase 1 on CPU is deterministic: `verify-index` checks this, and the base-model
+results (E0–E3) reproduce exactly. Training and GPU reranking can differ in the last decimal places
+from machine to machine, so E4–E6 may move slightly, well within their confidence intervals.
+
+**Outputs:** `eval_data/` (sets), `runs/*.jsonl` (one line per query), `reports/metrics.json` (every
+metric, with breakdowns by task, tier and data status, and CIs), `reports/eval_report_test.md` (tables)
+and `reports/*tuning*` (grids).
 
 ## 6. Part 2: implementation at scale, and the proof-of-concept
 
