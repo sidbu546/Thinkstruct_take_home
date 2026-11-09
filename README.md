@@ -200,7 +200,7 @@ Python 3.12, versions in `requirements.lock`. The source for each is `index/mani
 | `claim_number_inferred`: claim number not in source | 613 | medium | shown as "number inferred" |
 | `claim_canceled` / `classification_ambiguous` | 89 / 640 | info | listed; no per-result notice |
 
-`data_status`: **622 partial, 18 complete, 0 incomplete.** Nearly every patent has at least one
+`data_status`: **622 partial, 18 complete.** Nearly every patent has at least one
 extraction defect, mostly the lost claim-1 opening, so nearly every result carries a notice. That is
 intended. The defects are real and affect claim matching, so they're shown rather than hidden.
 

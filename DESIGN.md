@@ -94,7 +94,7 @@ are closed, and any saved result that used the old version is marked **"record u
 
 **Data status** per patent: `complete` (no open issue above `info`), `partial` (open medium or high
 issues), `incomplete` (a field needed for the assessment is missing, or a blocking issue is open).
-In this dataset: 622 partial, 18 complete, 0 incomplete. Incomplete data does not lower a patent's
+In this dataset: 622 partial, 18 complete. Incomplete data does not lower a patent's
 rank (missing data is not evidence of irrelevance), but the output always says what is missing.
 
 ### 3.3 Adaptive chunking
