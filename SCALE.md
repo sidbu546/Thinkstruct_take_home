@@ -419,7 +419,7 @@ dataset. Compare its search results with the local engine's (M3), and only then 
 
 ---
 
-## 10. Proof of concept: local job queue, parallel workers and a live status dashboard
+## 10. Proof of concept: a job queue with parallel workers, and a live status dashboard
 
 **What it demonstrates:** the backbone of §4 and §6–7 (idempotent jobs, leases, retries,
 quarantine and salvage, dedupe, data issues, status tracking) on **real files from

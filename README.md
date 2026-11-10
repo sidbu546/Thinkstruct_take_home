@@ -8,7 +8,7 @@ which claim, which claim element, which description passage.
 |---|---|
 | **README.md** (this file) | problem statement, how to run, results |
 | [DESIGN.md](DESIGN.md) | how the engine (Part 1) and its two enhancements (Part 3) work, and why |
-| [SCALE.md](SCALE.md) | Part 2: running this at 10M patents (components, pipelines, cost, errors) and the proof-of-concept |
+| [SCALE.md](SCALE.md) | Part 2: running this at 10M patents (components, pipelines, cost, errors) and the proof-of-concept (job queue with parallel workers, live status dashboard) |
 
 Status: **Parts 1, 2 and 3 are complete.** Part 1 (§2–§4) and Part 3 (§5) are implemented and measured.
 Part 2 is designed in SCALE.md, and its proof-of-concept is built and measured (§6).
@@ -502,11 +502,29 @@ The design for 10M patents is in **[SCALE.md](SCALE.md)**: components, pipelines
 data research, re-embedding, query), cost, error handling, status tracking, challenges and an
 implementation plan. Its sizing and cost use numbers measured by the proof-of-concept below.
 
-**Proof-of-concept** (`poc/`; details and full results in SCALE.md §10): a local **job queue**
-(SQLite, WAL) with **leases, retries with backoff and a dead state**, **parallel worker processes**
-running the Part 1 ingest code on **real batch files from the large dataset zip** (read without
-extracting), with corrupted-file salvage, quarantine, dedupe, data-issue tracking, fault injection and
-a **live status dashboard**.
+### Proof-of-concept: a job queue with parallel workers, and a live status dashboard
+
+The proof-of-concept (`poc/`; details and full results in SCALE.md §10) has two main parts.
+
+#### 1. Job queue with parallel workers
+
+- **Job queue** (SQLite in WAL mode, `poc/queue.py`): one job per batch file of the large dataset,
+  read straight from the zip without extracting it. Jobs are claimed with a **lease**, retried with
+  **backoff** when they fail, and marked **dead** after 3 attempts. Queuing the same file twice adds
+  nothing.
+- **Parallel workers** (`poc/worker.py`): independent worker processes that each claim a job, run the
+  Part 1 ingest code on it (claim parsing, adaptive chunking, data-issue detection), and write the
+  results and "job done" in one transaction, so a crashed worker never leaves half-written data.
+- **Error handling** (`poc/process.py`, `poc/faults.py`): salvage of truncated or corrupt files with
+  the unreadable part quarantined, dedupe of exact and conflicting duplicates, data issues flagged
+  rather than dropped, and injected failures and a killed worker to show recovery.
+
+#### 2. Live status dashboard
+
+- **Dashboard** (`poc/dashboard.py`, http://localhost:8001): one page that refreshes every 2 seconds,
+  showing jobs by status, retries, each worker's state and heartbeat, jobs that needed retries or
+  salvage or failed, data issues, quarantine, and the measured throughput extrapolated to 10M patents.
+- **Terminal view** (`poc/status.py`): the same summary with `python -m poc.status`.
 
 ### How to run the proof-of-concept
 
