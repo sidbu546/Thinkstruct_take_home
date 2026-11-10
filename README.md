@@ -1,5 +1,9 @@
 # Patent Claim Search
 
+> **🎥 Video walkthrough (Part 2 and Part 3):** [watch on Google Drive](https://drive.google.com/file/d/1avjGZ6BA0LWIJG31Ys9OA28QnsTeaiPG/view?usp=sharing)
+> Part 2: the 10M-patent design and the proof-of-concept (job queue with parallel workers, live status dashboard).
+> Part 3: evaluation & training, and two-phase search.
+
 A local, reproducible hybrid search engine for vehicle patent applications (2024–2025) that finds
 **which other applications overlap with an idea, a claim, or a whole patent, and exactly where**:
 which claim, which claim element, which description passage.
