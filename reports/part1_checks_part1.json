@@ -1,0 +1,34 @@
+{
+  "weights": "part1",
+  "self_retrieval": {
+    "top1": 95,
+    "top5": 99,
+    "n": 100
+  },
+  "latency_ms": {
+    "text": {
+      "p50": 42.0,
+      "p95": 49
+    },
+    "text + filters": {
+      "p50": 50.5,
+      "p95": 54
+    },
+    "claim": {
+      "p50": 101.0,
+      "p95": 860
+    },
+    "claim + filters": {
+      "p50": 106.5,
+      "p95": 832
+    },
+    "patent": {
+      "p50": 1205.0,
+      "p95": 2041
+    },
+    "filters only": {
+      "p50": 1.0,
+      "p95": 1
+    }
+  }
+}

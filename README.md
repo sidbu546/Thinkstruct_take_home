@@ -193,6 +193,15 @@ All numbers were measured on the machine this was built on: Apple M4 (10 cores),
 Python 3.12, versions in `requirements.lock`. The source for each is `index/manifest.json`,
 `index/ingest_report.json` or `reports/`.
 
+**Reproduce the Part 1 results** (after the §3 setup and `build-index`):
+
+| Result | Command | Reproduces |
+|---|---|---|
+| Ingest, chunk and data-issue counts (§4.1, §4.2) | `build-index` prints them; `.venv/bin/python scripts/part1_checks.py` prints them again from `index/manifest.json` | exactly |
+| Build reproducibility (§4.3) | `.venv/bin/python -m patent_search verify-index` | exactly (PASS) |
+| Claim self-retrieval and latency (§4.4) | `.venv/bin/python scripts/part1_checks.py` (Part 1's original weights; add `--weights final` for the tuned ones) | self-retrieval exactly; latency depends on the machine |
+| Element-coverage thresholds (§4.5) | `.venv/bin/python scripts/calibrate_coverage.py --index index` | exactly |
+
 ### 4.1 What ingest found (small dataset)
 
 | | Count | Handling |
@@ -246,15 +255,16 @@ query returns its own patent **first 95%** of the time and in the **top 5 99%** 
 easy, because the claim's own chunk is in the index. Part 3 builds the real evaluation, with the
 patent's own claims masked out.
 
-**Latency** (warm, model loaded, CPU):
+**Latency** (warm, model loaded, CPU; `scripts/part1_checks.py`, saved in `reports/part1_checks_part1.json`):
 
 | Request | p50 | p95 |
 |---|---|---|
-| text query | 27 ms | 30 ms |
-| text query + CPC + keyword filters | 32 ms | 34 ms |
-| claim query (with element sub-queries and coverage) | 66 ms | 475 ms |
-| patent mode (each independent claim as a query + claim map) | 733 ms | 1,371 ms |
-| filters only (no query) | < 1 ms | < 1 ms |
+| text query | 42 ms | 49 ms |
+| text query + CPC + keyword filters | 50 ms | 54 ms |
+| claim query (with element sub-queries and coverage) | 101 ms | 860 ms |
+| claim query + CPC filter | 106 ms | 832 ms |
+| patent mode (each independent claim as a query + claim map) | 1,205 ms | 2,041 ms |
+| filters only (no query) | 1 ms | 1 ms |
 
 Filtering first makes the vector step cheaper (exact scoring over only the allowed rows). One fix
 mattered a lot: restricting FTS5 BM25 with `rowid IN (subquery)` took ~2 s per filtered query;
@@ -636,7 +646,7 @@ patent_search/   ingest/ (load, normalize, claims, validate, chunk) · embed/ (e
                  eval/ (build_sets, runner, metrics, report) · train/ (finetune)
                  render/ (text, chart) · api/app.py · cli.py · schemas.py · notices.py · config.py · manifest.py
 poc/             Part 2 proof-of-concept: db, queue, enqueue, process, worker, faults, status, dashboard
-scripts/         calibrate_coverage.py · tune_kind_weights.sh · tune_rerank_final.py
+scripts/         part1_checks.py · calibrate_coverage.py · tune_kind_weights.sh · tune_rerank_final.py
                  run_test_phase1.sh · run_test_rerank.sh · latency_bench.py · readme_tables.py · reproduce_part3.sh
 tests/           34 tests (fake encoder and reranker; ~3 s)
 eval_data/       evaluation splits, queries, answer files, pairs and training triplets (in git)
