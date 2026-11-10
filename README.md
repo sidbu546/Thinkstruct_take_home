@@ -529,8 +529,7 @@ The proof-of-concept (`poc/`; details and full results in SCALE.md §10) has two
 ### How to run the proof-of-concept
 
 It uses **two terminals**: one runs the dashboard (a small web server that keeps running), the other
-runs the workers. A run over 20 batch files, most of it the
-embedding sample (`--embed-sample 0` skips it and takes about 15 minutes).
+runs the workers. Most of a run's time goes to the embedding sample; `--embed-sample 0` skips it.
 
 **Terminal 1: start the dashboard and leave it running.**
 
