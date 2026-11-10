@@ -289,9 +289,24 @@ tightened. These are similarity cut-offs, not legal judgments. They get re-tuned
 ## 5. Part 3: evaluation & training, and two-phase search
 
 **Enhancements picked:** (A) **evaluation and training** and (B) **two-phase search**. Why these two:
-they need no extra data (the non-English sample for translation was never provided), they run
-locally, and they reinforce each other. (A) is the measurement that says whether (B), the fine-tuned
-model, and the Part 1 choices (adaptive chunking, hybrid fusion, chunk weights) actually help.
+
+- **A search engine for patent examiners can't be improved by guesswork.** Without measurement, every
+  design choice (adaptive chunking, hybrid fusion, chunk weights, the embedding model) is an opinion.
+  (A) turns each one into a tested decision with a confidence interval. It paid off: it found that the
+  claim-mode chunk weights mattered far more than any model change (+0.268 MRR@10 on test).
+- **General embedding models are not trained on patent language.** Claims are long, formal and full of
+  reference terms ("said first peripheral surface"), and they describe the same invention in different
+  words from the description. Training on (claim, its own abstract or passage) pairs, with look-alike
+  patents from the same classification as hard negatives, teaches the model exactly the distinction an
+  examiner has to make: same invention, or merely the same topic.
+- **Examiners read a short list, so the top of the ranking matters most.** A bi-encoder turns the claim
+  and each passage into separate vectors and compares them, which loses element-level detail. A
+  cross-encoder (B) reads the claim and the passage *together*, so it can judge whether specific
+  limitations are actually disclosed. It is too slow to run over every patent, which is why it reranks
+  only the top 100 that phase 1 retrieves.
+- **They cover different halves of the problem.** Fine-tuning improves *finding* the right patents
+  (phase 1); reranking improves *ordering* them (phase 2). And because phase 2 only reorders phase-1
+  candidates, the examiner's filters are always respected.
 
 ### 5.1 How Part 3 connects to Part 1 (one system, not a side tool)
 

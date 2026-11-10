@@ -374,9 +374,22 @@ on real files from the large dataset, and its sizing and cost use the numbers th
 
 ## Part 3: evaluation & training, and two-phase search
 
-The two enhancements are **evaluation & training** and **two-phase search**. They need no data beyond
-what is available, run locally, and support each other: the evaluation is what shows whether
-two-phase search, the fine-tuned model and the choices made in the engine actually help.
+The two enhancements are **evaluation & training** and **two-phase search**, chosen for what they do
+for patent search:
+
+- **Evaluation turns design choices into tested decisions.** Adaptive chunking, hybrid fusion, the
+  chunk weights and the embedding model are each measured against the same queries, with confidence
+  intervals, instead of being assumed to help.
+- **Training adapts a general model to patent language.** Claims and descriptions describe the same
+  invention in different words; training on claim-to-own-patent pairs, with look-alike patents from the
+  same classification as hard negatives, targets the distinction an examiner makes between "same
+  invention" and "same topic".
+- **Two-phase search puts precision where examiners need it.** A cross-encoder reads the claim and a
+  passage together and can judge element-level disclosure, which separate vectors cannot. It is too
+  costly for every patent, so it reranks only phase 1's top 100, and it can only reorder them, so
+  filters always hold.
+- **They are complementary:** training improves recall in phase 1, reranking improves the order in
+  phase 2, and the evaluation shows how much each one contributes.
 
 ### How Part 3 connects to the engine
 
