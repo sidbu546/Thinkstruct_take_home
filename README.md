@@ -511,7 +511,7 @@ a **live status dashboard**.
 ### How to run the proof-of-concept
 
 It uses **two terminals**: one runs the dashboard (a small web server that keeps running), the other
-runs the workers. A run over 20 batch files takes about 35 minutes on the M4, most of it the
+runs the workers. A run over 20 batch files, most of it the
 embedding sample (`--embed-sample 0` skips it and takes about 15 minutes).
 
 **Terminal 1: start the dashboard and leave it running.**
