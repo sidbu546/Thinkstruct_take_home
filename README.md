@@ -195,12 +195,12 @@ Python 3.12, versions in `requirements.lock`. The source for each is `index/mani
 
 **Reproduce the Part 1 results** (after the §3 setup and `build-index`):
 
-| Result | Command | Reproduces |
-|---|---|---|
-| Ingest, chunk and data-issue counts (§4.1, §4.2) | `build-index` prints them; `.venv/bin/python scripts/part1_checks.py` prints them again from `index/manifest.json` | exactly |
-| Build reproducibility (§4.3) | `.venv/bin/python -m patent_search verify-index` | exactly (PASS) |
-| Claim self-retrieval and latency (§4.4) | `.venv/bin/python scripts/part1_checks.py` (Part 1's original weights; add `--weights final` for the tuned ones) | self-retrieval exactly; latency depends on the machine |
-| Element-coverage thresholds (§4.5) | `.venv/bin/python scripts/calibrate_coverage.py --index index` | exactly |
+| Result | Command |
+|---|---|
+| Ingest, chunk and data-issue counts (§4.1, §4.2) | `build-index` prints them; `.venv/bin/python scripts/part1_checks.py` prints them again from `index/manifest.json` |
+| Build reproducibility (§4.3) | `.venv/bin/python -m patent_search verify-index` |
+| Claim self-retrieval and latency (§4.4) | `.venv/bin/python scripts/part1_checks.py` (Part 1's original weights; add `--weights final` for the tuned ones) |
+| Element-coverage thresholds (§4.5) | `.venv/bin/python scripts/calibrate_coverage.py --index index` |
 
 ### 4.1 What ingest found (small dataset)
 
@@ -473,17 +473,17 @@ order:
 scripts/reproduce_part3.sh
 ```
 
-| # | Step | Produces | Time (Apple M4) |
-|---|---|---|---|
-| 1 | build the evaluation sets | `eval_data/`: family splits, dev/test queries and answers, T4 pairs, training triplets | ~10 min |
-| 2 | build the fixed-chunk baseline index | `index_fixed/` for E1, E1h, E1d | ~30 min |
-| 3 | dev runs, including Part 1's original weights, and the chunk-weight grid | dev results and `reports/kind_weight_grid_dev.log` | ~25 min |
-| 4 | fine-tune the bi-encoder, then index with it | `models/gte-patent-ft/`, `index_ft/` | ~25–45 min + ~45 min |
-| 5 | calibrate element-coverage thresholds | `reports/coverage_calibration*.json` | ~2 min |
-| 6 | dev selection check, T4 pairs on dev, rerank α/β grid on dev | `reports/rerank_tuning_final_dev.json` | ~45 min |
-| 7 | all phase-1 test runs (E0–E4, ablations), T4 on test, T5 filters | `runs/E*_test.jsonl`, `reports/metrics.json` | ~25 min |
-| 8 | reranked test runs E6 and E5 | `runs/E5_test.jsonl`, `runs/E6_test.jsonl` | ~1–2.5 h |
-| 9 | serving latency, tables, report | `reports/latency_bench_index_ft.json`, §5.3 tables, `reports/eval_report_test.md` | ~10 min |
+| # | Step | Produces |
+|---|---|---|
+| 1 | build the evaluation sets | `eval_data/`: family splits, dev/test queries and answers, T4 pairs, training triplets |
+| 2 | build the fixed-chunk baseline index | `index_fixed/` for E1, E1h, E1d |
+| 3 | dev runs, including Part 1's original weights, and the chunk-weight grid | dev results and `reports/kind_weight_grid_dev.log` |
+| 4 | fine-tune the bi-encoder, then index with it | `models/gte-patent-ft/`, `index_ft/` |
+| 5 | calibrate element-coverage thresholds | `reports/coverage_calibration*.json` |
+| 6 | dev selection check, T4 pairs on dev, rerank α/β grid on dev | `reports/rerank_tuning_final_dev.json` |
+| 7 | all phase-1 test runs (E0–E4, ablations), T4 on test, T5 filters | `runs/E*_test.jsonl`, `reports/metrics.json` |
+| 8 | reranked test runs E6 and E5 | `runs/E5_test.jsonl`, `runs/E6_test.jsonl` |
+| 9 | serving latency, tables, report | `reports/latency_bench_index_ft.json`, §5.3 tables, `reports/eval_report_test.md` |
 
 The chosen settings (claim-mode chunk weights, rerank α and β) are already in
 `patent_search/config.py`, so steps 7–8 use them directly. Steps 3 and 6 show how they were chosen on dev.
